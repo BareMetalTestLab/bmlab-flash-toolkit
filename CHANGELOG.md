@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2025-12-11
+
+### Fixed
+- **Linux Segmentation Fault with IP Connections** - Fixed critical bug causing segfault on Linux when using `bmlab-jlink-rtt --ip`
+  - Skip USB device enumeration for IP connections (not applicable for network JLink)
+  - Skip `set_tif()` and `connect()` calls for IP connections (handled by JLink Remote Server)
+  - Skip `reset()` operation for IP connections to avoid crashes
+  - IP connections now use remote server's existing target connection instead of attempting reconnection
+
+### Changed
+- Improved IP connection handling for better stability on Linux systems
+- IP connections now display "Remote Target" as MCU name when not explicitly specified
+
 ## [0.1.0] - 2025-11-22
 
 ### Added

@@ -182,16 +182,17 @@ class JLinkProgrammer(Programmer):
             True if connection successful, False otherwise
         """
         try:
-            # Verify device exists before trying to open
-            temp_jlink = pylink.JLink()
-            emulators = temp_jlink.connected_emulators()
-            
-            if self._serial:
-                found = any(emu.SerialNumber == self._serial for emu in emulators)
-                if not found:
-                    available = [emu.SerialNumber for emu in emulators]
-                    self.logger.error(f"Device {self._serial} not found. Available: {available}")
-                    return False
+            # Verify device exists before trying to open (skip for IP connections)
+            if not self._ip_addr:
+                temp_jlink = pylink.JLink()
+                emulators = temp_jlink.connected_emulators()
+                
+                if self._serial:
+                    found = any(emu.SerialNumber == self._serial for emu in emulators)
+                    if not found:
+                        available = [emu.SerialNumber for emu in emulators]
+                        self.logger.error(f"Device {self._serial} not found. Available: {available}")
+                        return False
             
             # Open JLink connection (with IP, serial, or first available)
             if self._ip_addr:
@@ -223,53 +224,60 @@ class JLinkProgrammer(Programmer):
                 self.logger.error("Failed to open JLink")
                 return False
 
-            # Set interface to SWD
-            try:
-                self._jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
-                self.logger.debug("Interface set to SWD")
-            except Exception as e:
-                self.logger.error(f"Failed to set SWD interface: {e}")
-                return False
-
-            # Connect to MCU
-            if mcu:
-                self.logger.info(f"Connecting to specified MCU: {mcu}")
-                try:
-                    self._jlink.connect(mcu)
-                    self._mcu = mcu
-                except Exception as e:
-                    self.logger.error(f"Failed to connect to {mcu}: {e}")
-                    return False
+            # For IP connections, skip SWD interface setup and MCU connect
+            # JLink Remote Server already handles the target connection
+            if self._ip_addr:
+                self.logger.info("IP connection - using remote server's target connection")
+                self._mcu = mcu if mcu else "Remote Target"
+                self.logger.info(f"Connected to {self._mcu} via IP")
             else:
-                self.logger.info("Auto-detecting MCU...")
+                # Set interface to SWD for direct connections
                 try:
-                    detected_mcu = self.detect_target()
-                    
-                    if detected_mcu:
-                        self.logger.info(f"Detected MCU: {detected_mcu}")
-                        self._mcu = detected_mcu
-                        # Disconnect and reconnect with proper device name for correct flash programming
-                        if self._jlink.connected():
-                            try:
-                                # Set device and reconnect for proper configuration
-                                self._jlink.exec_command(f"device = {detected_mcu}")
-                                self.logger.debug(f"Set device to {detected_mcu}")
-                            except Exception as e:
-                                self.logger.warning(f"Could not set device: {e}, will use generic connection")
-                    else:
-                        self.logger.warning("Could not auto-detect MCU, trying generic Cortex-M4")
-                        self._mcu = "Cortex-M4"
-                        self._jlink.connect(self._mcu)
+                    self._jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
+                    self.logger.debug("Interface set to SWD")
                 except Exception as e:
-                    self.logger.error(f"MCU detection/connection failed: {e}")
-                    # Try fallback to Cortex-M4
+                    self.logger.error(f"Failed to set SWD interface: {e}")
+                    return False
+
+                # Connect to MCU
+                if mcu:
+                    self.logger.info(f"Connecting to specified MCU: {mcu}")
                     try:
-                        self.logger.warning("Trying fallback to Cortex-M4")
-                        self._mcu = "Cortex-M4"
-                        self._jlink.connect(self._mcu)
-                    except Exception as e2:
-                        self.logger.error(f"Fallback connection also failed: {e2}")
+                        self._jlink.connect(mcu)
+                        self._mcu = mcu
+                    except Exception as e:
+                        self.logger.error(f"Failed to connect to {mcu}: {e}")
                         return False
+                else:
+                    self.logger.info("Auto-detecting MCU...")
+                    try:
+                        detected_mcu = self.detect_target()
+                        
+                        if detected_mcu:
+                            self.logger.info(f"Detected MCU: {detected_mcu}")
+                            self._mcu = detected_mcu
+                            # Disconnect and reconnect with proper device name for correct flash programming
+                            if self._jlink.connected():
+                                try:
+                                    # Set device and reconnect for proper configuration
+                                    self._jlink.exec_command(f"device = {detected_mcu}")
+                                    self.logger.debug(f"Set device to {detected_mcu}")
+                                except Exception as e:
+                                    self.logger.warning(f"Could not set device: {e}, will use generic connection")
+                        else:
+                            self.logger.warning("Could not auto-detect MCU, trying generic Cortex-M4")
+                            self._mcu = "Cortex-M4"
+                            self._jlink.connect(self._mcu)
+                    except Exception as e:
+                        self.logger.error(f"MCU detection/connection failed: {e}")
+                        # Try fallback to Cortex-M4
+                        try:
+                            self.logger.warning("Trying fallback to Cortex-M4")
+                            self._mcu = "Cortex-M4"
+                            self._jlink.connect(self._mcu)
+                        except Exception as e2:
+                            self.logger.error(f"Fallback connection also failed: {e2}")
+                            return False
 
             self.logger.info(f"Connected to {self._mcu}")
             print(f"Connected to target: {self._mcu}")
@@ -297,6 +305,12 @@ class JLinkProgrammer(Programmer):
         Args:
             halt: Whether to halt after reset
         """
+        # Skip reset for IP connections as it may cause segfault on Linux
+        # Remote server should handle target reset
+        if self._ip_addr:
+            self.logger.info("Reset skipped for IP connection (handled by remote server)")
+            return
+
         if not self._jlink.opened():
             self.logger.warning("Not connected, cannot reset")
             return
