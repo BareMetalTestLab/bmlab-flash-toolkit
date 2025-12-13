@@ -83,7 +83,7 @@ class Programmer(ABC):
         self.logger = logging.getLogger(f"{self.__class__.__name__}")
 
     @abstractmethod
-    def flash(self, file_path: str, mcu: Optional[str] = None, do_verify: bool = True, reset: bool = True) -> bool:
+    def flash(self, file_path: str, mcu: Optional[str] = None, reset: bool = True) -> bool:
         """
         Flash firmware to the device.
         Automatically connects to target if not already connected.
@@ -91,7 +91,6 @@ class Programmer(ABC):
         Args:
             file_path: Path to firmware file
             mcu: MCU name (optional, will auto-detect if not provided)
-            do_verify: Whether to verify the flash operation
             reset: Whether to reset device after flashing (default: True)
             
         Returns:

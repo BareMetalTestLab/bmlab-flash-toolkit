@@ -111,9 +111,6 @@ prog.flash("firmware.hex")
 # Flash with specific MCU
 prog.flash("firmware.hex", mcu="STM32F765ZG")
 
-# Flash without verification
-prog.flash("firmware.hex", do_verify=False)
-
 # Flash without reset
 prog.flash("firmware.hex", reset=False)
 ```

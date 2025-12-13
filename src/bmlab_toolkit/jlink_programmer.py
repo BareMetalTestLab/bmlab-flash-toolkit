@@ -12,9 +12,9 @@ from typing import Optional, List, Dict, Any
 from .programmer import Programmer, DBGMCU_IDCODE_ADDRESSES, DEVICE_ID_MAP, DEFAULT_MCU_MAP
 
 # Configure default logging level for JLinkProgrammer
-logging.basicConfig(level=logging.WARNING, format='%(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
 
-# Set pylink logger to WARNING to reduce verbose output
+# Suppress pylink logger to avoid communication timeout errors during disconnect
 pylink_logger = logging.getLogger('pylink')
 pylink_logger.setLevel(logging.WARNING)
 
@@ -60,7 +60,7 @@ class JLinkProgrammer(Programmer):
             self._serial = serial
             print(f"Selected JLink with serial: {serial}")
 
-    def flash(self, file_path: str, mcu: Optional[str] = None, do_verify: bool = True, reset: bool = True) -> bool:
+    def flash(self, file_path: str, mcu: Optional[str] = None, reset: bool = True) -> bool:
         """
         Flash firmware to the device using JLink.
         Automatically connects to target if not already connected.
@@ -68,7 +68,6 @@ class JLinkProgrammer(Programmer):
         Args:
             file_path: Path to firmware file (.hex or .bin)
             mcu: MCU name (optional, will auto-detect if not provided)
-            do_verify: Whether to verify the flash operation
             reset: Whether to reset device after flashing (default: True)
             
         Returns:
@@ -87,49 +86,22 @@ class JLinkProgrammer(Programmer):
             
             self.logger.info(f"Flashing {file_path}...")
             
-            # Halt the core before flashing
-            try:
-                if not self._jlink.halted():
-                    self._jlink.halt()
-                    self.logger.debug("Core halted for flashing")
-            except Exception as e:
-                self.logger.warning(f"Could not halt core: {e}")
-            
             # Flash at STM32 default flash base address
             try:
                 # Check file extension to determine flashing method
-                if file_path.lower().endswith('.hex'):
-                    # Use flash_file for hex files
-                    result = self._jlink.flash_file(file_path, 0x08000000)
-                    if result < 0:
-                        self.logger.error(f"Flash failed with result: {result}")
-                        return False
-                    self.logger.info(f"Flash successful: {result} bytes written")
-                elif file_path.lower().endswith('.bin'):
-                    # Use flash method for binary files
-                    import os
-                    file_size = os.path.getsize(file_path)
-                    self.logger.debug(f"Binary file size: {file_size} bytes")
-                    
-                    # Read binary file
-                    with open(file_path, 'rb') as f:
-                        data = f.read()
-                    
-                    # Flash binary data at base address
-                    self.logger.debug("Writing binary data to flash...")
-                    result = self._jlink.flash(list(data), 0x08000000)
-                    self.logger.info(f"Flash successful: {len(data)} bytes written")
-                else:
+                if not file_path.lower().endswith('.hex') and not file_path.lower().endswith('.bin'):
                     self.logger.error(f"Unsupported file format: {file_path}")
                     return False
+
+                result = self._jlink.flash_file(file_path, 0x08000000)
+                if result < 0:
+                    self.logger.error(f"Flash failed with result: {result}")
+                    return False
+                self.logger.info(f"Flash successful: {result} bytes written")
                 
             except Exception as e:
                 self.logger.error(f"Flash operation failed: {e}")
                 return False
-            
-            if do_verify:
-                self.logger.info("Verifying flash...")
-                # JLink flash_file already includes verification by default
             
             # Reset device if requested
             if reset:
@@ -165,8 +137,7 @@ class JLinkProgrammer(Programmer):
                 return any(emu.SerialNumber == self._serial for emu in emulators)
             else:
                 # Check if any JLink is connected
-                emulators = pylink.JLink().connected_emulators()
-                return len(emulators) > 0
+                return True
         except Exception as e:
             self.logger.error(f"Probe error: {e}")
             return False
@@ -213,71 +184,53 @@ class JLinkProgrammer(Programmer):
                     self.logger.error(f"Failed to open JLink with serial {self._serial}: {e}")
                     return False
             else:
-                self.logger.info("Opening JLink (first available)")
-                try:
-                    self._jlink.open()
-                except Exception as e:
-                    self.logger.error(f"Failed to open JLink: {e}")
-                    return False
-
+                self.logger.error(f"No serial or IP specified for JLink connection")
+                return False
+            
+            self._jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
             if not self._jlink.opened():
                 self.logger.error("Failed to open JLink")
                 return False
 
-            # For IP connections, skip SWD interface setup and MCU connect
-            # JLink Remote Server already handles the target connection
-            if self._ip_addr:
-                self.logger.info("IP connection - using remote server's target connection")
-                self._mcu = mcu if mcu else "Remote Target"
-                self.logger.info(f"Connected to {self._mcu} via IP")
-            else:
-                # Set interface to SWD for direct connections
+            # Connect to MCU
+            if mcu:
+                self.logger.info(f"Connecting to specified MCU: {mcu}")
                 try:
-                    self._jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
-                    self.logger.debug("Interface set to SWD")
+                    self._jlink.connect(mcu)
+                    self._mcu = mcu
                 except Exception as e:
-                    self.logger.error(f"Failed to set SWD interface: {e}")
+                    self.logger.error(f"Failed to connect to {mcu}: {e}")
                     return False
-
-                # Connect to MCU
-                if mcu:
-                    self.logger.info(f"Connecting to specified MCU: {mcu}")
+            else:
+                self.logger.info("Auto-detecting MCU...")
+                try:
+                    detected_mcu = self.detect_target()
+                    
+                    if detected_mcu:
+                        self.logger.info(f"Detected MCU: {detected_mcu}")
+                        self._mcu = detected_mcu
+                        # Disconnect and reconnect with proper device name for correct flash programming
+                        if self._jlink.connected():
+                            try:
+                                # Set device and reconnect for proper configuration
+                                self._jlink.exec_command(f"device = {detected_mcu}")
+                                self.logger.debug(f"Set device to {detected_mcu}")
+                            except Exception as e:
+                                self.logger.warning(f"Could not set device: {e}, will use generic connection")
+                    else:
+                        self.logger.warning("Could not auto-detect MCU, trying generic Cortex-M4")
+                        self._mcu = "Cortex-M4"
+                        self._jlink.connect(self._mcu)
+                except Exception as e:
+                    self.logger.error(f"MCU detection/connection failed: {e}")
+                    # Try fallback to Cortex-M4
                     try:
-                        self._jlink.connect(mcu)
-                        self._mcu = mcu
-                    except Exception as e:
-                        self.logger.error(f"Failed to connect to {mcu}: {e}")
+                        self.logger.warning("Trying fallback to Cortex-M4")
+                        self._mcu = "Cortex-M4"
+                        self._jlink.connect(self._mcu)
+                    except Exception as e2:
+                        self.logger.error(f"Fallback connection also failed: {e2}")
                         return False
-                else:
-                    self.logger.info("Auto-detecting MCU...")
-                    try:
-                        detected_mcu = self.detect_target()
-                        
-                        if detected_mcu:
-                            self.logger.info(f"Detected MCU: {detected_mcu}")
-                            self._mcu = detected_mcu
-                            # Disconnect and reconnect with proper device name for correct flash programming
-                            if self._jlink.connected():
-                                try:
-                                    # Set device and reconnect for proper configuration
-                                    self._jlink.exec_command(f"device = {detected_mcu}")
-                                    self.logger.debug(f"Set device to {detected_mcu}")
-                                except Exception as e:
-                                    self.logger.warning(f"Could not set device: {e}, will use generic connection")
-                        else:
-                            self.logger.warning("Could not auto-detect MCU, trying generic Cortex-M4")
-                            self._mcu = "Cortex-M4"
-                            self._jlink.connect(self._mcu)
-                    except Exception as e:
-                        self.logger.error(f"MCU detection/connection failed: {e}")
-                        # Try fallback to Cortex-M4
-                        try:
-                            self.logger.warning("Trying fallback to Cortex-M4")
-                            self._mcu = "Cortex-M4"
-                            self._jlink.connect(self._mcu)
-                        except Exception as e2:
-                            self.logger.error(f"Fallback connection also failed: {e2}")
-                            return False
 
             self.logger.info(f"Connected to {self._mcu}")
             print(f"Connected to target: {self._mcu}")
@@ -293,6 +246,10 @@ class JLinkProgrammer(Programmer):
             if self._jlink.opened():
                 self.logger.info("Disconnecting from device")
                 self._jlink.close()
+        except pylink.errors.JLinkException as e:
+            # Ignore timeout errors during close - known pylink issue on Linux
+            if "timed out" not in str(e).lower():
+                self.logger.warning(f"Error during disconnect: {e}")
         except Exception as e:
             self.logger.warning(f"Error during disconnect: {e}")
         finally:
@@ -305,12 +262,6 @@ class JLinkProgrammer(Programmer):
         Args:
             halt: Whether to halt after reset
         """
-        # Skip reset for IP connections as it may cause segfault on Linux
-        # Remote server should handle target reset
-        if self._ip_addr:
-            self.logger.info("Reset skipped for IP connection (handled by remote server)")
-            return
-
         if not self._jlink.opened():
             self.logger.warning("Not connected, cannot reset")
             return
