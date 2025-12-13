@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2025-12-14
+
+### Added
+- **Network Scanning for JLink Remote Servers** - `bmlab-scan` now supports scanning IP networks
+  - New `--network` parameter accepts CIDR notation (e.g., `192.168.1.0/24`)
+  - New `--start-ip` and `--end-ip` parameters for specifying IP range by last octet
+  - Sequential scanning to avoid segmentation faults
+  - Socket-based pre-check (port 19020) before attempting JLink connection
+  - Automatic target detection for remote servers
+  - Example: `bmlab-scan --network 192.168.1.0/24 --start-ip 100 --end-ip 150`
+
+### Fixed
+- **Communication timeout errors during network scan** - Added proper exception handling for timeout errors during JLink disconnect in network scanning
+- **Serial key error in network scan** - Fixed output logic to properly separate network scan results from USB scan results
+
 ## [0.1.2] - 2025-12-13
 
 ### Added

@@ -328,7 +328,7 @@ class JLinkProgrammer(Programmer):
     @staticmethod
     def scan() -> List[Dict[str, Any]]:
         """
-        Get list of all available JLink devices (private method).
+        Get list of all available JLink devices.
         
         Returns:
             List of device information dictionaries:
@@ -382,6 +382,120 @@ class JLinkProgrammer(Programmer):
             return devices
         except Exception as e:
             print(f"Warning: Could not enumerate JLink devices: {e}")
+            return []
+    
+    @staticmethod
+    def scan_network(network: str, start_ip: Optional[int] = None, end_ip: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        Scan network for JLink Remote Servers.
+        
+        Args:
+            network: Network in CIDR notation (e.g., '192.168.1.0/24')
+            start_ip: Starting last octet for IP range (optional)
+            end_ip: Ending last octet for IP range (optional)
+            
+        Returns:
+            List of device information dictionaries:
+            - ip: IP address
+            - target: Target MCU name (if detectable)
+            - type: 'jlink-remote'
+        """
+        import ipaddress
+        import socket
+        
+        def check_ip(ip_str):
+            """Check if JLink Remote Server is available at IP."""
+            # First check if port 19020 is open using socket (fast and safe)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.5)  # 500ms timeout
+            
+            try:
+                result = sock.connect_ex((ip_str, 19020))
+                sock.close()
+                
+                if result != 0:
+                    # Port is not open, skip
+                    return None
+                
+                # Port is open, try JLink connection
+                temp_jlink = pylink.JLink()
+                temp_jlink.open(ip_addr=f"{ip_str}:19020")
+                
+                if temp_jlink.opened():
+                    device_info = {
+                        'ip': ip_str,
+                        'type': 'jlink-remote'
+                    }
+                    
+                    # Try to detect target
+                    try:
+                        temp_jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
+                        
+                        temp_programmer = JLinkProgrammer.__new__(JLinkProgrammer)
+                        temp_programmer._jlink = temp_jlink
+                        temp_programmer.logger = logging.getLogger(__name__)
+                        
+                        detected = temp_programmer.detect_target()
+                        if detected:
+                            device_info['target'] = detected
+                        else:
+                            device_info['target'] = 'Connected'
+                    except Exception:
+                        device_info['target'] = 'Connected'
+                    
+                    try:
+                        temp_jlink.close()
+                    except pylink.errors.JLinkException as e:
+                        # Ignore timeout errors during disconnect
+                        if 'Communication timed out' not in str(e):
+                            pass
+                    except Exception:
+                        pass
+                    
+                    return device_info
+            except Exception:
+                try:
+                    sock.close()
+                except:
+                    pass
+            
+            return None
+        
+        try:
+            net = ipaddress.ip_network(network, strict=False)
+            # Generate list of IPs to scan
+            ips = [str(ip) for ip in net.hosts()]
+            
+            # Filter by start/end IP if specified
+            if start_ip is not None or end_ip is not None:
+                filtered_ips = []
+                for ip_str in ips:
+                    last_octet = int(ip_str.split('.')[-1])
+                    if start_ip is not None and last_octet < start_ip:
+                        continue
+                    if end_ip is not None and last_octet > end_ip:
+                        continue
+                    filtered_ips.append(ip_str)
+                ips = filtered_ips
+            
+            devices = []
+            total = len(ips)
+            
+            print(f"Scanning {total} IP addresses...")
+            
+            # Sequential scanning
+            for idx, ip in enumerate(ips, 1):
+                print(f"  [{idx}/{total}] {ip}...", end='', flush=True)
+                result = check_ip(ip)
+                if result:
+                    devices.append(result)
+                    print(f" ✓ Found: {result.get('target', 'Unknown')}")
+                else:
+                    print(" -")
+            
+            return devices
+        except Exception as e:
+            print(f"Warning: Network scan failed: {e}")
             return []
 
     def read_target_memory(self, address: int, num_bytes: int) -> Optional[list]:
