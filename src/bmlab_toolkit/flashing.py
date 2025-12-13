@@ -15,9 +15,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # List connected programmers (no firmware file specified)
-  bmlab-flash
-  bmlab-flash --programmer jlink
+  # List connected programmers
+  bmlab-scan
   
   # Flash with auto-detected JLink (first available)
   bmlab-flash firmware.hex
@@ -39,9 +38,7 @@ Examples:
     parser.add_argument(
         "firmware_file",
         type=str,
-        nargs='?',
-        default=None,
-        help="Path to firmware file (.hex or .bin). If not specified, lists connected devices."
+        help="Path to firmware file (.hex or .bin)"
     )
     
     parser.add_argument(
@@ -98,15 +95,11 @@ Examples:
         else:
             raise NotImplementedError(f"Programmer '{args.programmer}' is not yet implemented")
         
-        # If no firmware file specified, just list devices and exit
-        if args.firmware_file is None:
-            return
-        
-        # Otherwise flash firmware
+        # Flash firmware
         fw_file = os.path.abspath(args.firmware_file)
         if not os.path.exists(fw_file):
             print(f"Error: Firmware file not found: {fw_file}")
-            print(f"To list connected devices, run: bmlab-flash")
+            print(f"To list connected devices, run: bmlab-scan")
             sys.exit(1)
         
         # Check if programmer is available
