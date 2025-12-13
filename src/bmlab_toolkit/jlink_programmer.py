@@ -39,6 +39,9 @@ class JLinkProgrammer(Programmer):
         
         # Set logging level for this instance
         self.logger.setLevel(log_level)
+
+        if ip_addr and serial is not None:
+            raise ValueError("Cannot specify both serial number and IP address for JLink connection")
         
         # If IP address is provided, use it
         if ip_addr:
@@ -158,16 +161,15 @@ class JLinkProgrammer(Programmer):
         """
         try:
             # Verify device exists before trying to open (skip for IP connections)
-            if not self._ip_addr:
+            if self._serial:
                 temp_jlink = pylink.JLink()
                 emulators = temp_jlink.connected_emulators()
                 
-                if self._serial:
-                    found = any(emu.SerialNumber == self._serial for emu in emulators)
-                    if not found:
-                        available = [emu.SerialNumber for emu in emulators]
-                        self.logger.error(f"Device {self._serial} not found. Available: {available}")
-                        return False
+                found = any(emu.SerialNumber == self._serial for emu in emulators)
+                if not found:
+                    available = [emu.SerialNumber for emu in emulators]
+                    self.logger.error(f"Device {self._serial} not found. Available: {available}")
+                    return False
             
             # Open JLink connection (with IP, serial, or first available)
             if self._ip_addr:
@@ -487,20 +489,33 @@ class JLinkProgrammer(Programmer):
             self.logger.warning(f"Could not detect device automatically: {e}")
             return None
 
-    def start_rtt(self, rtt_address: Optional[int] = None, delay: float = 1.0) -> bool:
+    def start_rtt(self, mcu: Optional[str] = None, reset: bool = True, rtt_address: Optional[int] = None, delay: float = 1.0) -> bool:
         """
         Start Real-Time Transfer (RTT) communication.
+        Connects to target if not already connected.
         
         Args:
+            mcu: MCU name (optional, will auto-detect if not provided)
+            reset: Whether to reset target before starting RTT
             rtt_address: RTT control block address (None for auto-search)
             delay: Delay after starting RTT in seconds
             
         Returns:
             True if RTT started successfully, False otherwise
         """
-        if not self._jlink.opened():
-            self.logger.error("JLink not connected. Call _connect_target() first.")
+        # Connect to target if not already connected
+        if self._jlink.opened():
+            self._jlink.close()
+        
+        if not self._connect_target(mcu=mcu):
+            self.logger.error("Failed to connect to target")
             return False
+        
+        # Reset if requested
+        if reset:
+            self.logger.info("Resetting target before RTT...")
+            self.reset(halt=False)
+            time.sleep(0.5)  # Give device time to restart
         
         try:
             if rtt_address:

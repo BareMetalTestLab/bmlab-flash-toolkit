@@ -101,23 +101,12 @@ Examples:
         # Create programmer instance
         prog = JLinkProgrammer(serial=serial, ip_addr=ip_addr, log_level=log_level)
         
-        # Connect to target
+        # Start RTT (will connect and reset if needed)
         # When using IP, MCU is not specified (will use generic connection)
         mcu = None if ip_addr else args.mcu
         
-        if not prog._connect_target(mcu=mcu):
-            print("Error: Failed to connect to target")
-            sys.exit(1)
-        
-        # Reset if requested
-        if args.reset:
-            prog.reset(halt=False)
-            time.sleep(0.5)  # Give device time to restart
-        
-        # Start RTT
-        if not prog.start_rtt(delay=1.0):
+        if not prog.start_rtt(mcu=mcu, reset=args.reset, delay=1.0):
             print("Error: Failed to start RTT")
-            prog._disconnect_target()
             sys.exit(1)
         
         print("RTT connected. Reading data...")
@@ -129,8 +118,6 @@ Examples:
         # Send message if provided
         if args.msg:
             time.sleep(args.msg_timeout)
-            if args.verbose:
-                print(f"Sending message: {repr(args.msg)}")
             
             # Convert escape sequences
             msg = args.msg.encode('utf-8').decode('unicode_escape').encode('utf-8')
@@ -143,13 +130,9 @@ Examples:
             for attempt in range(max_retries):
                 bytes_written = prog.rtt_write(msg)
                 if bytes_written > 0:
-                    if args.verbose:
-                        print(f"Wrote {bytes_written} bytes" + (f" (attempt {attempt + 1})" if attempt > 0 else ""))
                     break
                 
                 if attempt < max_retries - 1:
-                    if args.verbose:
-                        print(f"Write failed (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s...")
                     time.sleep(retry_delay)
             else:
                 print(f"Warning: Failed to write message after {max_retries} attempts")
@@ -183,21 +166,13 @@ Examples:
             print("\n\nInterrupted by user")
         
         # Cleanup
-        if args.verbose:
-            print("\nStopping RTT...")
         prog.stop_rtt()
-        
-        if args.verbose:
-            print("Disconnecting...")
         prog._disconnect_target()
         
         print("\nDone.")
         
     except Exception as e:
         print(f"Error: {e}")
-        if args.verbose:
-            import traceback
-            traceback.print_exc()
         sys.exit(1)
 
 
