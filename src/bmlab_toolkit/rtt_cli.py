@@ -148,7 +148,11 @@ Examples:
                         break
                 
                 # Read RTT data
-                data = prog.rtt_read(max_bytes=4096)
+                try:
+                    data = prog.rtt_read(max_bytes=4096)
+                except Exception as e:
+                    print(f"\nRTT connection lost: {e}")
+                    break
                 
                 if data:
                     # Print data to stdout

@@ -555,6 +555,9 @@ class JLinkProgrammer(Programmer):
             
         Returns:
             Bytes read from RTT buffer
+            
+        Raises:
+            Exception: If RTT read fails (e.g., connection lost)
         """
         if not self._rtt_started:
             self.logger.warning("RTT not started")
@@ -565,7 +568,7 @@ class JLinkProgrammer(Programmer):
             return bytes(data) if data else b""
         except Exception as e:
             self.logger.error(f"RTT read error: {e}")
-            return b""
+            raise
     
     def rtt_write(self, data: bytes, buffer_index: int = 0) -> int:
         """
