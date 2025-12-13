@@ -73,6 +73,14 @@ Examples:
         help=f"Programmer type (default: {DEFAULT_PROGRAMMER})"
     )
     
+    parser.add_argument(
+        "--log-level", "-l",
+        type=str,
+        default="WARNING",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Set logging level (default: WARNING)"
+    )
+    
     args = parser.parse_args()
     
     # Validate that --serial and --ip are mutually exclusive
@@ -81,9 +89,12 @@ Examples:
         sys.exit(1)
     
     try:
+        # Convert log level string to logging constant
+        log_level = getattr(logging, args.log_level.upper())
+        
         # Create programmer instance
         if args.programmer.lower() == PROGRAMMER_JLINK:
-            prog = JLinkProgrammer(serial=args.serial, ip_addr=args.ip)
+            prog = JLinkProgrammer(serial=args.serial, ip_addr=args.ip, log_level=log_level)
         else:
             raise NotImplementedError(f"Programmer '{args.programmer}' is not yet implemented")
         

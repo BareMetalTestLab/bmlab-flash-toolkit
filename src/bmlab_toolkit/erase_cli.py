@@ -6,6 +6,7 @@ Command-line interface for erasing flash memory of embedded devices.
 
 import sys
 import argparse
+import logging
 from .jlink_programmer import JLinkProgrammer
 
 
@@ -39,8 +40,9 @@ Examples:
     parser.add_argument('--ip', type=str, default=None,
                        help='JLink IP address for network connection (e.g., 192.168.1.100)')
     
-    parser.add_argument('-v', '--verbose', action='store_true',
-                       help='Enable verbose output')
+    parser.add_argument('--log-level', '-l', type=str, default='WARNING',
+                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                       help='Set logging level (default: WARNING)')
     
     args = parser.parse_args()
     
@@ -54,11 +56,11 @@ Examples:
             sys.exit(1)
     
     try:
-        # Create programmer instance
-        if args.verbose:
-            print(f"Creating JLink programmer...")
+        # Convert log level string to logging constant
+        log_level = getattr(logging, args.log_level.upper())
         
-        prog = JLinkProgrammer(serial=serial, ip_addr=args.ip)
+        # Create programmer instance
+        prog = JLinkProgrammer(serial=serial, ip_addr=args.ip, log_level=log_level)
         
         # Perform erase
         print("Erasing device flash memory...")
@@ -75,9 +77,6 @@ Examples:
         sys.exit(130)
     except Exception as e:
         print(f"\nError: {e}")
-        if args.verbose:
-            import traceback
-            traceback.print_exc()
         sys.exit(1)
 
 

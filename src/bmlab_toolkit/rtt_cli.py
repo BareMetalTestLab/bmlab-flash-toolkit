@@ -7,6 +7,7 @@ Command-line interface for connecting to JLink RTT and reading/writing data.
 import sys
 import time
 import argparse
+import logging
 from typing import Optional
 from .jlink_programmer import JLinkProgrammer
 
@@ -71,8 +72,9 @@ Examples:
     parser.add_argument('--msg-retries', type=int, default=10,
                        help='Number of retries for sending message (default: 10)')
     
-    parser.add_argument('-v', '--verbose', action='store_true',
-                       help='Enable verbose output')
+    parser.add_argument('--log-level', '-l', type=str, default='WARNING',
+                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
+                       help='Set logging level (default: WARNING)')
     
     args = parser.parse_args()
     
@@ -93,17 +95,15 @@ Examples:
     ip_addr = args.ip
     
     try:
-        # Create programmer instance
-        if args.verbose:
-            print(f"Creating JLink programmer (serial={serial}, ip={ip_addr})...")
+        # Convert log level string to logging constant
+        log_level = getattr(logging, args.log_level.upper())
         
-        prog = JLinkProgrammer(serial=serial, ip_addr=ip_addr)
+        # Create programmer instance
+        prog = JLinkProgrammer(serial=serial, ip_addr=ip_addr, log_level=log_level)
         
         # Connect to target
         # When using IP, MCU is not specified (will use generic connection)
         mcu = None if ip_addr else args.mcu
-        if args.verbose:
-            print(f"Connecting to target (mcu={mcu})...")
         
         if not prog._connect_target(mcu=mcu):
             print("Error: Failed to connect to target")
@@ -111,15 +111,10 @@ Examples:
         
         # Reset if requested
         if args.reset:
-            if args.verbose:
-                print("Resetting target...")
             prog.reset(halt=False)
             time.sleep(0.5)  # Give device time to restart
         
         # Start RTT
-        if args.verbose:
-            print("Starting RTT...")
-        
         if not prog.start_rtt(delay=1.0):
             print("Error: Failed to start RTT")
             prog._disconnect_target()

@@ -22,19 +22,23 @@ pylink_logger.setLevel(logging.WARNING)
 class JLinkProgrammer(Programmer):
     """JLink programmer implementation."""
 
-    def __init__(self, serial: Optional[int] = None, ip_addr: Optional[str] = None):
+    def __init__(self, serial: Optional[int] = None, ip_addr: Optional[str] = None, log_level: int = logging.WARNING):
         """
         Initialize JLink programmer.
         
         Args:
             serial: JLink serial number (optional, will auto-detect first available if not provided)
             ip_addr: JLink IP address for network connection (e.g., "192.168.1.100")
+            log_level: Logging level (logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR)
         """
         super().__init__(serial)
         self._jlink = pylink.JLink()
         self._mcu = None
         self._rtt_started = False
         self._ip_addr = ip_addr
+        
+        # Set logging level for this instance
+        self.logger.setLevel(log_level)
         
         # If IP address is provided, use it
         if ip_addr:
