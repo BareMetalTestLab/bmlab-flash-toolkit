@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2025-12-13
+
+### Added
+- **Unified Logging Control** - Added `--log-level` (`-l`) parameter to all CLI tools
+  - Supports DEBUG, INFO, WARNING (default), ERROR levels
+  - Available in `bmlab-flash`, `bmlab-jlink-rtt`, and `bmlab-erase`
+  - Programmatic API: `log_level` parameter in `JLinkProgrammer.__init__()`
+
+### Changed
+- **Removed `do_verify` parameter** - Flash verification is always enabled (built into pylink flash_file)
+- **Removed `-v/--verbose` flags** - Replaced with `--log-level` for consistent logging control
+- **Improved RTT workflow** - `start_rtt()` now handles connection and reset automatically
+  - No need to manually call `_connect_target()` before RTT operations
+  - Simplified RTT CLI code
+
+### Fixed
+- **Communication timeout errors suppressed** - Changed pylink logger to CRITICAL level to hide harmless timeout errors during disconnect
+- **RTT connection loss detection** - RTT read errors now properly disconnect instead of infinite error loop
+  - Graceful exit when JLinkRemoteServer is closed
+  - Clear error message: "RTT connection lost"
+- **Better error handling** - RTT read exceptions are propagated to allow proper cleanup
+
 ## [0.1.1] - 2025-12-11
 
 ### Fixed
