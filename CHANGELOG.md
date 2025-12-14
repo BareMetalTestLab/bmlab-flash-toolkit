@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-12-14
+
+### Changed
+- **Improved resilience of network scanning for JLink Remote Server**:
+  - Added parallel scanning with limited concurrency (using `concurrent.futures.ThreadPoolExecutor`).
+  - Added socket timeout to avoid hanging on unresponsive IPs.
+- **launch.json** can now run the CLI via `"module": "bmlab_toolkit.scan_cli"` for correct relative import functionality.
+
+### Fixed
+  - Properly close J-Link connection after each IP scan (using `finally` + `_disconnect_target()`).
+  - Explicit error and exception handling when connecting to the target device.
+
 ## [0.1.3] - 2025-12-14
 
 ### Added

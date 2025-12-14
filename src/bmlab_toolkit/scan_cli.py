@@ -8,8 +8,58 @@ import sys
 import argparse
 import logging
 import ipaddress
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from .constants import SUPPORTED_PROGRAMMERS, DEFAULT_PROGRAMMER, PROGRAMMER_JLINK
 from .jlink_programmer import JLinkProgrammer
+import socket
+import time
+
+def scan_network_ip(ip_str, log_level):
+    """Scan a single IP for JLink Remote Server."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(0.5)  # 500ms timeout
+    
+    try:
+        result = sock.connect_ex((ip_str, 19020))
+        sock.close()
+        time.sleep(1.0)
+        
+        if result != 0:
+            # Port is not open, skip
+            return None
+    except Exception as e:
+        # Connection or detection failed
+        return None
+
+    # Try to connect and detect MCU
+    prog = None
+    try:
+        prog = JLinkProgrammer(ip_addr=ip_str, log_level=log_level)
+        mcu = prog.connect_target()
+        if not mcu:
+            # Connection failed
+            prog._jlink.close()
+            print(f"{ip_str}: No target detected")
+            return None
+        
+        # Successfully connected - get device info
+        device_info = {
+            'ip': ip_str,
+            'type': 'jlink-remote',
+            'status': 'Connected',
+            'target': mcu if mcu else 'Unknown'
+        }
+        
+        return device_info
+    except Exception as e:
+        # Connection or detection failed
+        return None
+    finally:
+        # Always close the connection
+        try:
+            prog.disconnect_target()
+        except:
+            pass
 
 
 def main():
@@ -87,16 +137,58 @@ Examples:
                 
                 print(f"Scanning network {network} for JLink Remote Servers...\n")
                 
-                devices = JLinkProgrammer.scan_network(str(network), start_ip=args.start_ip, end_ip=args.end_ip)
+                # Generate list of IPs to scan
+                ips = [str(ip) for ip in network.hosts()]
+                
+                # Filter by start/end IP if specified
+                if args.start_ip is not None or args.end_ip is not None:
+                    filtered_ips = []
+                    for ip_str in ips:
+                        last_octet = int(ip_str.split('.')[-1])
+                        if args.start_ip is not None and last_octet < args.start_ip:
+                            continue
+                        if args.end_ip is not None and last_octet > args.end_ip:
+                            continue
+                        filtered_ips.append(ip_str)
+                    ips = filtered_ips
+                
+                total = len(ips)
+                print(f"Scanning {total} IP addresses...")
+                
+                devices = []
+                
+                # Parallel scanning with ThreadPoolExecutor
+                with ThreadPoolExecutor(max_workers=total) as executor:
+                    # Submit all IP checks
+                    future_to_ip = {executor.submit(scan_network_ip, ip, log_level): ip for ip in ips}
+                    
+                    # Process results as they complete
+                    completed = 0
+                    for future in as_completed(future_to_ip):
+                        ip = future_to_ip[future]
+                        completed += 1
+                        try:
+                            # Timeout for each future (e.g., 5 seconds)
+                            result = future.result(timeout=5)
+                            if result:
+                                devices.append(result)
+                                print(f"  [{completed}/{total}] {ip} ✓ Found")
+                            else:
+                                print(f"  [{completed}/{total}] {ip} -")
+                        except Exception as e:
+                            print(f"  [{completed}/{total}] {ip} ✗ Error: {e}")
+                        except TimeoutError:
+                            print(f"  [{completed}/{total}] {ip} ✗ Timeout (skipped)")
                 
                 if not devices:
-                    print("No JLink Remote Servers found on the network.")
+                    print("\nNo JLink Remote Servers found on the network.")
                     sys.exit(1)
                 
-                print(f"Found {len(devices)} JLink Remote Server(s):\n")
+                print(f"\nFound {len(devices)} JLink Remote Server(s):\n")
                 for i, dev in enumerate(devices):
                     ip = dev.get('ip', 'Unknown')
-                    target = dev.get('target', 'Not detected')
+                    status = dev.get('status', 'Unknown')
+                    target = dev.get('target', 'Unknown')
                     
                     print(f"[{i}] JLink Remote Server")
                     print(f"    IP:      {ip}")

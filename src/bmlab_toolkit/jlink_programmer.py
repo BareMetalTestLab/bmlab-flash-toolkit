@@ -43,7 +43,7 @@ class JLinkProgrammer(Programmer):
         # If IP address is provided, use it
         if ip_addr:
             self._serial = None
-            print(f"Using JLink at IP: {ip_addr}")
+            self.logger.info(f"Using JLink at IP: {ip_addr}")
         # If no serial specified, find first available device
         elif serial is None:
             devices = self.scan()
@@ -51,18 +51,18 @@ class JLinkProgrammer(Programmer):
                 raise RuntimeError("No JLink devices found. Please connect a JLink.")
             
             # Show all detected devices
-            print(f"Detected {len(devices)} JLink device(s):")
+            self.logger.info(f"Detected {len(devices)} JLink device(s):")
             for i, dev in enumerate(devices):
                 product = dev.get('product', 'Unknown')
                 target = dev.get('target', 'Not detected')
-                print(f"  [{i}] Serial: {dev['serial']}, Product: {product}, Target: {target}")
+                self.logger.info(f"  [{i}] Serial: {dev['serial']}, Product: {product}, Target: {target}")
             
             # Use the first device
             self._serial = devices[0]['serial']
-            print(f"Using JLink with serial: {self._serial}")
+            self.logger.info(f"Using JLink with serial: {self._serial}")
         else:
             self._serial = serial
-            print(f"Selected JLink with serial: {serial}")
+            self.logger.info(f"Selected JLink with serial: {serial}")
 
     def flash(self, file_path: str, mcu: Optional[str] = None, reset: bool = True) -> bool:
         """
@@ -84,7 +84,7 @@ class JLinkProgrammer(Programmer):
                 self._jlink.close()
             
             # Connect to target
-            if not self._connect_target(mcu=mcu):
+            if not self.connect_target(mcu=mcu):
                 self.logger.error("Failed to connect to device")
                 return False
             
@@ -123,7 +123,7 @@ class JLinkProgrammer(Programmer):
         finally:
             # Disconnect after flashing
             try:
-                self._disconnect_target()
+                self.disconnect_target()
             except Exception as e:
                 self.logger.warning(f"Disconnect error: {e}")
 
@@ -146,7 +146,7 @@ class JLinkProgrammer(Programmer):
             self.logger.error(f"Probe error: {e}")
             return False
 
-    def _connect_target(self, mcu: Optional[str] = None) -> bool:
+    def connect_target(self, mcu: Optional[str] = None) -> bool:
         """
         Connect to the target device via JLink (private method).
         
@@ -166,7 +166,7 @@ class JLinkProgrammer(Programmer):
                 if not found:
                     available = [emu.SerialNumber for emu in emulators]
                     self.logger.error(f"Device {self._serial} not found. Available: {available}")
-                    return False
+                    return None
             
             # Open JLink connection (with IP, serial, or first available)
             if self._ip_addr:
@@ -175,7 +175,7 @@ class JLinkProgrammer(Programmer):
                     self._jlink.open(ip_addr=f"{self._ip_addr}:19020")
                 except Exception as e:
                     self.logger.error(f"Failed to open JLink at IP {self._ip_addr}: {e}")
-                    return False
+                    return None
             elif self._serial:
                 self.logger.info(f"Opening JLink with serial: {self._serial}")
                 try:
@@ -185,15 +185,15 @@ class JLinkProgrammer(Programmer):
                     self._jlink.open(serial_no=self._serial)
                 except Exception as e:
                     self.logger.error(f"Failed to open JLink with serial {self._serial}: {e}")
-                    return False
+                    return None
             else:
                 self.logger.error(f"No serial or IP specified for JLink connection")
-                return False
+                return None
             
             self._jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
             if not self._jlink.opened():
                 self.logger.error("Failed to open JLink")
-                return False
+                return None
 
             # Connect to MCU
             if mcu:
@@ -203,7 +203,7 @@ class JLinkProgrammer(Programmer):
                     self._mcu = mcu
                 except Exception as e:
                     self.logger.error(f"Failed to connect to {mcu}: {e}")
-                    return False
+                    return None
             else:
                 self.logger.info("Auto-detecting MCU...")
                 try:
@@ -233,17 +233,17 @@ class JLinkProgrammer(Programmer):
                         self._jlink.connect(self._mcu)
                     except Exception as e2:
                         self.logger.error(f"Fallback connection also failed: {e2}")
-                        return False
+                        return None
 
             self.logger.info(f"Connected to {self._mcu}")
-            print(f"Connected to target: {self._mcu}")
-            return True
+            self.logger.info(f"Connected to target: {self._mcu}")
+            return self._mcu
 
         except Exception as e:
             self.logger.error(f"Connection error: {e}")
-            return False
+            return None
 
-    def _disconnect_target(self):
+    def disconnect_target(self):
         """Disconnect from the target device and close JLink (private method)."""
         try:
             if self._jlink.opened():
@@ -292,7 +292,7 @@ class JLinkProgrammer(Programmer):
                 self._jlink.close()
             
             # Connect to target
-            if not self._connect_target(mcu=mcu):
+            if not self.connect_target(mcu=mcu):
                 self.logger.error("Failed to connect to device")
                 return False
             
@@ -321,7 +321,7 @@ class JLinkProgrammer(Programmer):
         finally:
             # Disconnect after erasing
             try:
-                self._disconnect_target()
+                self.disconnect_target()
             except Exception as e:
                 self.logger.warning(f"Disconnect error: {e}")
 
@@ -382,120 +382,6 @@ class JLinkProgrammer(Programmer):
             return devices
         except Exception as e:
             print(f"Warning: Could not enumerate JLink devices: {e}")
-            return []
-    
-    @staticmethod
-    def scan_network(network: str, start_ip: Optional[int] = None, end_ip: Optional[int] = None) -> List[Dict[str, Any]]:
-        """
-        Scan network for JLink Remote Servers.
-        
-        Args:
-            network: Network in CIDR notation (e.g., '192.168.1.0/24')
-            start_ip: Starting last octet for IP range (optional)
-            end_ip: Ending last octet for IP range (optional)
-            
-        Returns:
-            List of device information dictionaries:
-            - ip: IP address
-            - target: Target MCU name (if detectable)
-            - type: 'jlink-remote'
-        """
-        import ipaddress
-        import socket
-        
-        def check_ip(ip_str):
-            """Check if JLink Remote Server is available at IP."""
-            # First check if port 19020 is open using socket (fast and safe)
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.5)  # 500ms timeout
-            
-            try:
-                result = sock.connect_ex((ip_str, 19020))
-                sock.close()
-                
-                if result != 0:
-                    # Port is not open, skip
-                    return None
-                
-                # Port is open, try JLink connection
-                temp_jlink = pylink.JLink()
-                temp_jlink.open(ip_addr=f"{ip_str}:19020")
-                
-                if temp_jlink.opened():
-                    device_info = {
-                        'ip': ip_str,
-                        'type': 'jlink-remote'
-                    }
-                    
-                    # Try to detect target
-                    try:
-                        temp_jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
-                        
-                        temp_programmer = JLinkProgrammer.__new__(JLinkProgrammer)
-                        temp_programmer._jlink = temp_jlink
-                        temp_programmer.logger = logging.getLogger(__name__)
-                        
-                        detected = temp_programmer.detect_target()
-                        if detected:
-                            device_info['target'] = detected
-                        else:
-                            device_info['target'] = 'Connected'
-                    except Exception:
-                        device_info['target'] = 'Connected'
-                    
-                    try:
-                        temp_jlink.close()
-                    except pylink.errors.JLinkException as e:
-                        # Ignore timeout errors during disconnect
-                        if 'Communication timed out' not in str(e):
-                            pass
-                    except Exception:
-                        pass
-                    
-                    return device_info
-            except Exception:
-                try:
-                    sock.close()
-                except:
-                    pass
-            
-            return None
-        
-        try:
-            net = ipaddress.ip_network(network, strict=False)
-            # Generate list of IPs to scan
-            ips = [str(ip) for ip in net.hosts()]
-            
-            # Filter by start/end IP if specified
-            if start_ip is not None or end_ip is not None:
-                filtered_ips = []
-                for ip_str in ips:
-                    last_octet = int(ip_str.split('.')[-1])
-                    if start_ip is not None and last_octet < start_ip:
-                        continue
-                    if end_ip is not None and last_octet > end_ip:
-                        continue
-                    filtered_ips.append(ip_str)
-                ips = filtered_ips
-            
-            devices = []
-            total = len(ips)
-            
-            print(f"Scanning {total} IP addresses...")
-            
-            # Sequential scanning
-            for idx, ip in enumerate(ips, 1):
-                print(f"  [{idx}/{total}] {ip}...", end='', flush=True)
-                result = check_ip(ip)
-                if result:
-                    devices.append(result)
-                    print(f" ✓ Found: {result.get('target', 'Unknown')}")
-                else:
-                    print(" -")
-            
-            return devices
-        except Exception as e:
-            print(f"Warning: Network scan failed: {e}")
             return []
 
     def read_target_memory(self, address: int, num_bytes: int) -> Optional[list]:
@@ -618,7 +504,7 @@ class JLinkProgrammer(Programmer):
         if self._jlink.opened():
             self._jlink.close()
         
-        if not self._connect_target(mcu=mcu):
+        if not self.connect_target(mcu=mcu):
             self.logger.error("Failed to connect to target")
             return False
         

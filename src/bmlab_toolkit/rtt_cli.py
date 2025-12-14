@@ -171,7 +171,7 @@ Examples:
         
         # Cleanup
         prog.stop_rtt()
-        prog._disconnect_target()
+        prog.disconnect_target()
         
         print("\nDone.")
         

@@ -20,7 +20,7 @@ def example_basic_rtt():
     
     try:
         # Connect to target (auto-detect MCU)
-        prog._connect_target()
+        prog.connect_target()
         
         # Start RTT
         prog.start_rtt(delay=1.0)
@@ -36,7 +36,7 @@ def example_basic_rtt():
         
         # Cleanup
         prog.stop_rtt()
-        prog._disconnect_target()
+        prog.disconnect_target()
         
     except Exception as e:
         print(f"Error: {e}")
@@ -52,7 +52,7 @@ def example_rtt_with_message():
     
     try:
         # Connect with specific MCU
-        prog._connect_target(mcu="STM32F765ZG")
+        prog.connect_target(mcu="STM32F765ZG")
         
         # Reset device
         prog.reset(halt=False)
@@ -81,7 +81,7 @@ def example_rtt_with_message():
         
         # Cleanup
         prog.stop_rtt()
-        prog._disconnect_target()
+        prog.disconnect_target()
         
     except Exception as e:
         print(f"Error: {e}")
@@ -97,7 +97,7 @@ def example_rtt_interactive():
     
     try:
         # Connect
-        prog._connect_target()
+        prog.connect_target()
         prog.start_rtt(delay=1.0)
         
         print("RTT connected. Type commands (Ctrl+C to exit):")
@@ -127,7 +127,7 @@ def example_rtt_interactive():
         print(f"Error: {e}")
     finally:
         prog.stop_rtt()
-        prog._disconnect_target()
+        prog.disconnect_target()
 
 
 def example_rtt_logging():
@@ -139,7 +139,7 @@ def example_rtt_logging():
     prog = JLinkProgrammer()
     
     try:
-        prog._connect_target()
+        prog.connect_target()
         prog.start_rtt(delay=1.0)
         
         print("Logging RTT output to 'rtt_log.txt' for 10 seconds...")
@@ -159,7 +159,7 @@ def example_rtt_logging():
         print("\n\nLog saved to 'rtt_log.txt'")
         
         prog.stop_rtt()
-        prog._disconnect_target()
+        prog.disconnect_target()
         
     except Exception as e:
         print(f"Error: {e}")

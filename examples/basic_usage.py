@@ -70,12 +70,12 @@ def example_read_memory():
     # Note: Need to connect manually for memory operations
     # (flash() handles connection automatically)
     if hasattr(prog, '_connect_target'):
-        prog._connect_target()
+        prog.connect_target()
         data = prog.read_target_memory(0x08000000, 16)
         if data:
             hex_str = " ".join([f"{b:02X}" for b in data])
             print(f"Memory at 0x08000000: {hex_str}")
-        prog._disconnect_target()
+        prog.disconnect_target()
 
 
 if __name__ == "__main__":
