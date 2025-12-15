@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bmlab-toolkit"
-version = "0.1.4"
+version = "0.1.5"
 description = "CI/CD toolkit for flashing and testing embedded devices"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "BareMetal Test Lab", email = "info@bmlab.com"}
+    {name = "BareMetal Test Lab", email = "makloun@hotmail.com"}
 ]
 keywords = ["embedded", "firmware", "flashing", "jlink", "stm32", "ci-cd", "testing"]
 classifiers = [
@@ -41,7 +41,7 @@ bmlab-jlink-rtt = "bmlab_toolkit.rtt_cli:main"
 bmlab-scan = "bmlab_toolkit.scan_cli:main"
 
 [project.urls]
-Homepage = "https://github.com/BareMetalTestLab/bmlab-toolkit"
-Repository = "https://github.com/BareMetalTestLab/bmlab-toolkit"
-"Bug Tracker" = "https://github.com/BareMetalTestLab/bmlab-toolkit/issues"
-Documentation = "https://github.com/BareMetalTestLab/bmlab-toolkit#readme"
+Homepage = "https://github.com/BareMetalTestLab/bmlab-flash-toolkit"
+Repository = "https://github.com/BareMetalTestLab/bmlab-flash-toolkit"
+"Bug Tracker" = "https://github.com/BareMetalTestLab/bmlab-flash-toolkit/issues"
+Documentation = "https://github.com/BareMetalTestLab/bmlab-flash-toolkit#readme"
