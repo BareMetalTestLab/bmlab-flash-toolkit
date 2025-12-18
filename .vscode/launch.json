@@ -1,0 +1,191 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "bmlab-flash: Flash firmware (auto-detect)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.flashing",
+            "args": [
+                "firmware.hex",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-flash: Flash with serial",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.flashing",
+            "args": [
+                "firmware.hex",
+                "--serial", "123456789",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-flash: Flash with IP",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.flashing",
+            "args": [
+                "firmware.hex",
+                "--ip", "192.168.1.100",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-flash: Flash with MCU specified",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.flashing",
+            "args": [
+                "firmware.hex",
+                "--mcu", "STM32F765ZG",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-erase: Erase (auto-detect)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.erase_cli",
+            "args": [
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-erase: Erase with serial",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.erase_cli",
+            "args": [
+                "--serial", "123456789",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-erase: Erase with IP",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.erase_cli",
+            "args": [
+                "--ip", "192.168.1.100",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-erase: Erase with MCU specified",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.erase_cli",
+            "args": [
+                "--mcu", "STM32F765ZG",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-scan: Scan devices",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.scan_cli",
+            "args": [
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-scan: Scan with JSON output",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.scan_cli",
+            "args": [
+                "--format", "json",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-jlink-rtt: RTT (auto-detect)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.rtt_cli",
+            "args": [
+                "--timeout", "30",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-jlink-rtt: RTT with serial",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.rtt_cli",
+            "args": [
+                "--serial", "123456789",
+                "--timeout", "30",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-jlink-rtt: RTT with IP",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.rtt_cli",
+            "args": [
+                "--ip", "192.168.1.100",
+                "--timeout", "30",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-jlink-rtt: RTT with message",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.rtt_cli",
+            "args": [
+                "--msg", "Hello from RTT\\n",
+                "--msg-timeout", "2.0",
+                "--timeout", "30",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "bmlab-jlink-rtt: RTT no reset",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "bmlab_toolkit.rtt_cli",
+            "args": [
+                "--no-reset",
+                "--timeout", "30",
+                "--log-level", "DEBUG"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        }
+    ]
+}

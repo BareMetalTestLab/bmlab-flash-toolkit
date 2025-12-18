@@ -35,7 +35,6 @@ htmlcov/
 .nox/
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
