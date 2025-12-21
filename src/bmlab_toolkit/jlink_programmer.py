@@ -362,14 +362,14 @@ class JLinkProgrammer(Programmer):
                     jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
                     
                     # Create temporary programmer instance to use detect_target
-                    # temp_programmer = JLinkProgrammer.__new__(JLinkProgrammer)
-                    # temp_programmer._jlink = temp_jlink
-                    # temp_programmer.logger = logging.getLogger(__name__)
+                    temp_programmer = JLinkProgrammer.__new__(JLinkProgrammer)
+                    temp_programmer._jlink = jlink
+                    temp_programmer.logger = logging.getLogger(__name__)
                     
-                    # detected = temp_programmer.detect_target()
-                    # if detected:
-                        # print(f"Detected target for JLink S/N {emu.SerialNumber}: {detected}")
-                        # device_info['target'] = detected
+                    detected = temp_programmer.detect_target()
+                    if detected:
+                        print(f"Detected target for JLink S/N {emu.SerialNumber}: {detected}")
+                        device_info['target'] = detected
                     
                     jlink.close()
                 except Exception:
