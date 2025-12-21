@@ -1,7 +1,9 @@
 name: Test Builds
 
-on:
-  workflow_dispatch:
+push:
+  branches: [main]
+pull_request:
+workflow_dispatch:
 
 jobs:
   release-build:
@@ -17,4 +19,3 @@ jobs:
           python3 -m venv .venv
           source .venv/bin/activate
           pip install -e ".[dev]"
-          
