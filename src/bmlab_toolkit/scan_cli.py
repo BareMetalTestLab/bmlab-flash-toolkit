@@ -199,7 +199,7 @@ Examples:
             # USB scan mode
             else:
                 print(f"Scanning for USB JLink programmers...\n")
-                devices = JLinkProgrammer(log_level=log_level)
+                devices = JLinkProgrammer.scan  ()
             
             if not devices:
                 print("No JLink devices found.")
