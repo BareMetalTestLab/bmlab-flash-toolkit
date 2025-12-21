@@ -9,8 +9,8 @@ on:
 jobs:
   test-build:
     runs-on: self-hosted
-    container:
-      image: ghcr.io/baremetaltestlab/bmlab-flash-toolkit:latest
+    # container:
+      # image: ghcr.io/baremetaltestlab/bmlab-flash-toolkit:latest
 
     steps:
       - uses: actions/checkout@v4
