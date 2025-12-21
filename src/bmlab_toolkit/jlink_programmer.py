@@ -371,7 +371,7 @@ class JLinkProgrammer(Programmer):
                         # print(f"Detected target for JLink S/N {emu.SerialNumber}: {detected}")
                         # device_info['target'] = detected
                     
-                    temp_jlink.close()
+                    # temp_jlink.close()
                 except Exception:
                     # If detection fails, just skip it
                     pass
