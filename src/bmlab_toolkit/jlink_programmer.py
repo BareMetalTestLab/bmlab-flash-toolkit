@@ -365,10 +365,10 @@ class JLinkProgrammer(Programmer):
                     temp_programmer._jlink = temp_jlink
                     temp_programmer.logger = logging.getLogger(__name__)
                     
-                    detected = temp_programmer.detect_target()
-                    if detected:
-                        print(f"Detected target for JLink S/N {emu.SerialNumber}: {detected}")
-                        device_info['target'] = detected
+                    # detected = temp_programmer.detect_target()
+                    # if detected:
+                        # print(f"Detected target for JLink S/N {emu.SerialNumber}: {detected}")
+                        # device_info['target'] = detected
                     
                     temp_jlink.close()
                 except Exception:
