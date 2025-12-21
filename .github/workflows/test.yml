@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  install-dependencies:
+  test-build:
     runs-on: self-hosted
     container:
       image: ghcr.io/baremetaltestlab/bmlab-flash-toolkit:latest
@@ -23,5 +23,6 @@ jobs:
       
       - name: Test bmlab-scan
         run: |
+          lsusb
           . .venv/bin/activate
           bmlab-scan --log-level DEBUG
