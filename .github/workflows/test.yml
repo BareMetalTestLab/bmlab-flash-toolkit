@@ -1,0 +1,20 @@
+name: Upload Python Package
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-build:
+    runs-on: self-hosted
+    container:
+      image: ghcr.io/baremetaltestlab/bmlab-flash-toolkit:latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release distributions
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install -e ".[dev]"
+          
