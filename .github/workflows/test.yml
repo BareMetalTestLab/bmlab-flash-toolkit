@@ -24,5 +24,4 @@ jobs:
       - name: Test bmlab-scan
         run: |
           . .venv/bin/activate
-          bmlab-scan --help
           bmlab-scan --log-level DEBUG

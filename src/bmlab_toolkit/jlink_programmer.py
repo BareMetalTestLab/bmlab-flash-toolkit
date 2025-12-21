@@ -12,17 +12,17 @@ from typing import Optional, List, Dict, Any
 from .programmer import Programmer, DBGMCU_IDCODE_ADDRESSES, DEVICE_ID_MAP, DEFAULT_MCU_MAP
 
 # Configure default logging level for JLinkProgrammer
-logging.basicConfig(level=logging.WARNING, format='%(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
 
 # Suppress pylink logger to avoid communication timeout errors during disconnect
 pylink_logger = logging.getLogger('pylink')
-pylink_logger.setLevel(logging.WARNING)
+pylink_logger.setLevel(logging.DEBUG)
 
 
 class JLinkProgrammer(Programmer):
     """JLink programmer implementation."""
 
-    def __init__(self, serial: Optional[int] = None, ip_addr: Optional[str] = None, log_level: int = logging.WARNING):
+    def __init__(self, serial: Optional[int] = None, ip_addr: Optional[str] = None, log_level: int = logging.DEBUG):
         """
         Initialize JLink programmer.
         
