@@ -358,8 +358,8 @@ class JLinkProgrammer(Programmer):
                 try:
                     print(f"serial found {emu.SerialNumber}")
                     # temp_jlink = pylink.JLink()
-                    # temp_jlink.open(serial_no=emu.SerialNumber)
-                    # temp_jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
+                    jlink.open(serial_no=emu.SerialNumber)
+                    jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
                     
                     # Create temporary programmer instance to use detect_target
                     # temp_programmer = JLinkProgrammer.__new__(JLinkProgrammer)
@@ -371,7 +371,7 @@ class JLinkProgrammer(Programmer):
                         # print(f"Detected target for JLink S/N {emu.SerialNumber}: {detected}")
                         # device_info['target'] = detected
                     
-                    # temp_jlink.close()
+                    jlink.close()
                 except Exception:
                     # If detection fails, just skip it
                     pass
