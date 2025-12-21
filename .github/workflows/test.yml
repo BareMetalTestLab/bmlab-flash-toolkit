@@ -21,8 +21,8 @@ jobs:
           . .venv/bin/activate
           pip install -e ".[dev]"
       
-        - name: Run bmlab-scan
-          run: |
-            . .venv/bin/activate
-            bmlab-scan --help
-            bmlab-scan
+      - name: Test bmlab-scan
+        run: |
+          . .venv/bin/activate
+          bmlab-scan --help
+          bmlab-scan
