@@ -9,8 +9,6 @@ on:
 jobs:
   test-build:
     runs-on: self-hosted
-    # container:
-      # image: ghcr.io/baremetaltestlab/bmlab-flash-toolkit:latest
 
     steps:
       - uses: actions/checkout@v4
@@ -21,8 +19,15 @@ jobs:
           source .venv/bin/activate
           pip install -e ".[dev]"
       
-      - name: Test bmlab-scan
+      - name: Check for three JLink STM32F103RE devices
         run: |
-          lsusb
-          . .venv/bin/activate
-          bmlab-scan --log-level DEBUG
+          source .venv/bin/activate
+          bmlab-scan --log-level DEBUG | tee scan_output.txt
+          count=$(grep -c "Target:  *STM32F103RE" scan_output.txt)
+          if [ "$count" -eq 3 ]; then
+            echo "Found exactly three JLink STM32F103RE devices."
+          else
+            echo "Error: Found $count JLink STM32F103RE devices, expected 3."
+            cat scan_output.txt
+            exit 1
+          fi
