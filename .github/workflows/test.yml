@@ -24,8 +24,10 @@ jobs:
           . .venv/bin/activate
           bmlab-scan | tee scan1.txt
           count=$(grep -c "Target:  *STM32F103RE" scan1.txt)
+          grep -A2 "Target:  *STM32F103RE" scan1.txt | grep -oE 'Serial: *[0-9]+' | awk '{print $2}' | sort | uniq > serials.txt
           if [ "$count" -eq 3 ]; then
             echo "Test 1 passed"
+            echo "Serials: $(cat serials.txt)"
           else
             echo "Test 1 failed: found $count STM32F103RE"; cat scan1.txt; exit 1
           fi
@@ -39,13 +41,14 @@ jobs:
       - name: Test 3 — Start JLinkRemoteServer and scan via network
         run: |
           . .venv/bin/activate
-          nohup JLinkRemoteServer -select usb=771850347 -device STM32F103RE -endian little -speed 4000 -if swd > remote_server.log 2>&1 &
+          serial=$(head -n1 serials.txt)
+          nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > remote_server.log 2>&1 &
           sleep 3
           bmlab-scan --network 127.0.0.1/32 | tee scan3.txt
           status=$?
           cat remote_server.log
           grep -q "Target:  *STM32F103RE" scan3.txt
-          grep -q "Serial: *771850347" scan3.txt
+          grep -q "Serial: *$serial" scan3.txt
           exit $status
           
 
@@ -67,9 +70,12 @@ jobs:
           sudo ip addr add 192.168.2.101/24 dev lo
           sudo ip addr add 192.168.2.102/24 dev lo
           
-          nohup JLinkRemoteServer -select usb=771851115 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.100 > remote_server_100.log 2>&1 &
-          nohup JLinkRemoteServer -select usb=772440188 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.101 > remote_server_101.log 2>&1 &
-          nohup JLinkRemoteServer -select usb=771851371 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.102 > remote_server_102.log 2>&1 &
+          serial1=$(sed -n '1p' serials.txt)
+          serial2=$(sed -n '2p' serials.txt)
+          serial3=$(sed -n '3p' serials.txt)
+          nohup JLinkRemoteServer -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.100 > remote_server_100.log 2>&1 &
+          nohup JLinkRemoteServer -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.101 > remote_server_101.log 2>&1 &
+          nohup JLinkRemoteServer -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.102 > remote_server_102.log 2>&1 &
           
           sleep 5
 
