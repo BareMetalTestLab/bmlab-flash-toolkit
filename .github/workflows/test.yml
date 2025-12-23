@@ -16,18 +16,73 @@ jobs:
       - name: Build release distributions
         run: |
           python3 -m venv .venv
-          source .venv/bin/activate
+          . .venv/bin/activate
           pip install -e ".[dev]"
-      
-      - name: Check for three JLink STM32F103RE devices
+
+      - name: Test 1 — bmlab-scan (no arguments)
         run: |
-          source .venv/bin/activate
-          bmlab-scan --log-level DEBUG | tee scan_output.txt
-          count=$(grep -c "Target:  *STM32F103RE" scan_output.txt)
-          if [ "$count" -eq 3 ]; then
-            echo "Found exactly three JLink STM32F103RE devices."
+          . .venv/bin/activate
+          bmlab-scan | tee scan1.txt
+          count=$(grep -c "Target:  *STM32F103RE" scan1.txt)
+          serials=$(grep -A2 "Target:  *STM32F103RE" scan1.txt | grep -oE 'Serial: *[0-9]+' | awk '{print $2}' | sort | uniq | wc -l)
+          if [ "$count" -eq 3 ] && [ "$serials" -eq 3 ]; then
+            echo "Test 1 passed"
           else
-            echo "Error: Found $count JLink STM32F103RE devices, expected 3."
-            cat scan_output.txt
-            exit 1
+            echo "Test 1 failed: found $count STM32F103RE, $serials unique serials"; cat scan1.txt; exit 1
           fi
+
+      - name: Test 2 — bmlab-scan -p jlink
+        run: |
+          . .venv/bin/activate
+          bmlab-scan -p jlink | tee scan2.txt
+          diff scan1.txt scan2.txt
+
+      - name: Test 3 — Start JLinkRemoteServer and scan via network
+        run: |
+          . .venv/bin/activate
+          nohup JLinkRemoteServer -select usb=771850347 -device STM32F103RE -endian little -speed 4000 -if swd > remote_server.log 2>&1 &
+          sleep 3
+          bmlab-scan --network 127.0.0.1/32 | tee scan3.txt
+          grep -q "Target:  *STM32F103RE" scan3.txt
+          grep -q "Serial: *771850347" scan3.txt
+
+      - name: Test 4 — bmlab-scan --network 127.0.0.1/32 -p jlink
+        run: |
+          . .venv/bin/activate
+          bmlab-scan --network 127.0.0.1/32 -p jlink | tee scan4.txt
+          diff scan3.txt scan4.txt
+
+      - name: Test 5 — bmlab-scan --network 127.0.0.2/32 (negative)
+        run: |
+          . .venv/bin/activate
+          ! bmlab-scan --network 127.0.0.2/32 | tee scan5.txt | grep -q "STM32F103RE"
+          grep -qi "no devices found" scan5.txt
+
+      - name: Setup virtual network for Tests 6-7
+        run: |
+          sudo ip addr add 192.168.2.100/24 dev lo
+          sudo ip addr add 192.168.2.101/24 dev lo
+          sudo ip addr add 192.168.2.102/24 dev lo
+          
+          nohup JLinkRemoteServer -select usb=771851115 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.100 > remote_server_100.log 2>&1 &
+          nohup JLinkRemoteServer -select usb=772440188 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.101 > remote_server_101.log 2>&1 &
+          nohup JLinkRemoteServer -select usb=771851371 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.102 > remote_server_102.log 2>&1 &
+          
+          sleep 5
+
+      - name: Test 6 — Multiple RemoteServers, bmlab-scan --network 192.168.2.0/24
+        run: |
+          . .venv/bin/activate
+          # Предполагается, что RemoteServers уже запущены на .100, .101, .102
+          bmlab-scan --network 192.168.2.0/24 | tee scan6.txt
+          for ip in 100 101 102; do
+            grep -q "192.168.2.$ip" scan6.txt || (echo "No result for .$ip"; exit 1)
+          done
+
+      - name: Test 7 — bmlab-scan --network 192.168.2.0/24 --start-ip 100 --end-ip 150
+        run: |
+          . .venv/bin/activate
+          bmlab-scan --network 192.168.2.0/24 --start-ip 100 --end-ip 150 | tee scan7.txt
+          for ip in 100 101 102; do
+            grep -q "192.168.2.$ip" scan7.txt || (echo "No result for .$ip"; exit 1)
+          done
