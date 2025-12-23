@@ -27,7 +27,6 @@ jobs:
           awk '/JLink Programmer/ {serial=""} /Serial:/ {serial=$2} /Target: *STM32F103RE/ && serial {print serial}' scan1.txt | sort | uniq > serials.txt
           if [ "$count" -eq 3 ]; then
             echo "Test 1 passed"
-            echo "Serials: $(cat serials.txt)"
           else
             echo "Test 1 failed: found $count STM32F103RE"; cat scan1.txt; exit 1
           fi
@@ -37,7 +36,13 @@ jobs:
           . .venv/bin/activate
           bmlab-scan -p jlink | tee scan2.txt
           diff scan1.txt scan2.txt
-
+          if [ $? -ne 0 ]; then
+            echo "Test 2 failed: output differs from Test 1"
+            exit 1
+          else
+            echo "Test 2 passed"
+          fi
+          
       - name: Test 3 — Start JLinkRemoteServer and scan via network
         run: |
           . .venv/bin/activate
@@ -56,6 +61,8 @@ jobs:
       - name: Test 4 — bmlab-scan --network 127.0.0.1/32 -p jlink
         run: |
           . .venv/bin/activate
+          nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > remote_server.log 2>&1 &
+          sleep 3
           bmlab-scan --network 127.0.0.1/32 -p jlink | tee scan4.txt
           diff scan3.txt scan4.txt
 
