@@ -74,10 +74,9 @@ jobs:
 
       - name: Setup virtual network for Tests 6-7
         run: |
-          whoami
-          sudo ip addr add 192.168.2.100/24 dev lo
-          sudo ip addr add 192.168.2.101/24 dev lo
-          sudo ip addr add 192.168.2.102/24 dev lo
+          sudo ip addr show lo | grep -q 192.168.2.100 || sudo ip addr add 192.168.2.100/24 dev lo
+          sudo ip addr show lo | grep -q 192.168.2.101 || sudo ip addr add 192.168.2.101/24 dev lo
+          sudo ip addr show lo | grep -q 192.168.2.102 || sudo ip addr add 192.168.2.102/24 dev lo
           
       - name: Test 6 — Multiple RemoteServers, bmlab-scan --network 192.168.2.0/24
         run: |
