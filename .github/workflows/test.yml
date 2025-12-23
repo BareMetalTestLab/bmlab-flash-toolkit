@@ -85,9 +85,9 @@ jobs:
           serial1=$(sed -n '1p' serials.txt)
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
-          nohup JLinkRemoteServer -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.100 > remote_server_100.log 2>&1 &
-          nohup JLinkRemoteServer -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.101 > remote_server_101.log 2>&1 &
-          nohup JLinkRemoteServer -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd -ip 192.168.2.102 > remote_server_102.log 2>&1 &
+          nohup JLinkRemoteServer -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd -LocalhostOnly 0 > remote_server_100.log 2>&1 &
+          nohup JLinkRemoteServer -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd -LocalhostOnly 0 > remote_server_101.log 2>&1 &
+          nohup JLinkRemoteServer -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd -LocalhostOnly 0 > remote_server_102.log 2>&1 &
           
           sleep 5
 
