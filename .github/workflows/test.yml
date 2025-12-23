@@ -70,7 +70,7 @@ jobs:
         run: |
           . .venv/bin/activate
           ! bmlab-scan --network 127.0.0.2/32 | tee scan5.txt | grep -q "STM32F103RE"
-          grep -qi "no devices found" scan5.txt
+          grep -qi "No JLink Remote Servers found on the network." scan5.txt
 
       - name: Setup virtual network for Tests 6-7
         run: |
