@@ -71,12 +71,6 @@ jobs:
           . .venv/bin/activate
           ! bmlab-scan --network 127.0.0.2/32 | tee scan5.txt | grep -q "STM32F103RE"
           grep -qi "No JLink Remote Servers found on the network." scan5.txt
-          
-      - name: Debug sudoers
-        run: |
-          whoami
-          which ip
-          sudo -l
 
       - name: Setup virtual network for Tests 6-7
         run: |
@@ -85,6 +79,10 @@ jobs:
           sudo ip addr add 192.168.2.101/24 dev lo
           sudo ip addr add 192.168.2.102/24 dev lo
           
+      - name: Test 6 — Multiple RemoteServers, bmlab-scan --network 192.168.2.0/24
+        run: |
+          . .venv/bin/activate
+
           serial1=$(sed -n '1p' serials.txt)
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
@@ -94,9 +92,6 @@ jobs:
           
           sleep 5
 
-      - name: Test 6 — Multiple RemoteServers, bmlab-scan --network 192.168.2.0/24
-        run: |
-          . .venv/bin/activate
           # Предполагается, что RemoteServers уже запущены на .100, .101, .102
           bmlab-scan --network 192.168.2.0/24 | tee scan6.txt
           for ip in 100 101 102; do
