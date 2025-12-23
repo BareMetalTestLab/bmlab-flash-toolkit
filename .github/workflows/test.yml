@@ -24,7 +24,7 @@ jobs:
           . .venv/bin/activate
           bmlab-scan | tee scan1.txt
           count=$(grep -c "Target:  *STM32F103RE" scan1.txt)
-          grep -A2 "Target:  *STM32F103RE" scan1.txt | grep -oE 'Serial:  *[0-9]+' | awk '{print $2}' | sort | uniq > serials.txt
+          awk '/JLink Programmer/ {serial=""} /Serial:/ {serial=$2} /Target: *STM32F103RE/ && serial {print serial}' scan1.txt | sort | uniq > serials.txt
           if [ "$count" -eq 3 ]; then
             echo "Test 1 passed"
             echo "Serials: $(cat serials.txt)"
