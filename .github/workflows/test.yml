@@ -42,8 +42,12 @@ jobs:
           nohup JLinkRemoteServer -select usb=771850347 -device STM32F103RE -endian little -speed 4000 -if swd > remote_server.log 2>&1 &
           sleep 3
           bmlab-scan --network 127.0.0.1/32 | tee scan3.txt
+          status=$?
+          cat remote_server.log
           grep -q "Target:  *STM32F103RE" scan3.txt
           grep -q "Serial: *771850347" scan3.txt
+          exit $status
+          
 
       - name: Test 4 — bmlab-scan --network 127.0.0.1/32 -p jlink
         run: |
