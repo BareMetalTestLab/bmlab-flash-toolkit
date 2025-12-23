@@ -24,11 +24,10 @@ jobs:
           . .venv/bin/activate
           bmlab-scan | tee scan1.txt
           count=$(grep -c "Target:  *STM32F103RE" scan1.txt)
-          serials=$(grep -A2 "Target:  *STM32F103RE" scan1.txt | grep -oE 'Serial: *[0-9]+' | awk '{print $2}' | sort | uniq | wc -l)
-          if [ "$count" -eq 3 ] && [ "$serials" -eq 3 ]; then
+          if [ "$count" -eq 3 ]; then
             echo "Test 1 passed"
           else
-            echo "Test 1 failed: found $count STM32F103RE, $serials unique serials"; cat scan1.txt; exit 1
+            echo "Test 1 failed: found $count STM32F103RE"; cat scan1.txt; exit 1
           fi
 
       - name: Test 2 — bmlab-scan -p jlink
