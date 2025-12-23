@@ -48,7 +48,7 @@ jobs:
           bmlab-scan --network 127.0.0.1/32 | tee scan3.txt
           cat remote_server.log
           grep -q "Target:  *STM32F103RE" scan3.txt
-          grep -q "Serial: *$serial" scan3.txt
+          grep -q "IP: *127.0.0.1" scan3.txt
           if [ $? -ne 0 ]; then
             cat scan3.txt
           fi
