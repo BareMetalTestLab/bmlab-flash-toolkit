@@ -1,0 +1,144 @@
+name: Test Builds
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  VNET_BASE: 192.168.3
+  VNET_MASK: 24
+jobs:
+  test-build:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release distributions
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -e ".[dev]"
+
+      - name: Test 1 — bmlab-scan (no arguments)
+        run: |
+          . .venv/bin/activate
+          bmlab-scan | tee scan1.txt
+          count=$(grep -c "Target:  *STM32F103RE" scan1.txt)
+          awk '/JLink Programmer/ {serial=""} /Serial:/ {serial=$2} /Target: *STM32F103RE/ && serial {print serial}' scan1.txt | sort | uniq > serials.txt
+          if [ "$count" -eq 3 ]; then
+            echo "Test 1 passed"
+          else
+            echo "Test 1 failed: found $count STM32F103RE"; cat scan1.txt; exit 1
+          fi
+
+      - name: Test 2 — bmlab-scan -p jlink
+        run: |
+          . .venv/bin/activate
+          bmlab-scan -p jlink | tee scan2.txt
+          diff scan1.txt scan2.txt
+          if [ $? -ne 0 ]; then
+            echo "Test 2 failed: output differs from Test 1"
+            exit 1
+          else
+            echo "Test 2 passed"
+          fi
+          
+      - name: Test 3 — Start JLinkRemoteServer and scan via network
+        run: |
+          . .venv/bin/activate
+          serial=$(head -n1 serials.txt)
+          echo "Using serial: $serial"
+          nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > remote_server.log 2>&1 &
+          sleep 3
+          bmlab-scan --network 127.0.0.1/32 | tee scan3.txt
+          cat remote_server.log
+          grep -q "Target:  *STM32F103RE" scan3.txt
+          grep -q "IP: *127.0.0.1" scan3.txt
+          if [ $? -ne 0 ]; then
+            cat scan3.txt
+          fi
+
+      - name: Test 4 — bmlab-scan --network 127.0.0.1/32 -p jlink
+        run: |
+          . .venv/bin/activate
+          nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > remote_server.log 2>&1 &
+          sleep 3
+          bmlab-scan --network 127.0.0.1/32 -p jlink | tee scan4.txt
+          diff scan3.txt scan4.txt
+
+      - name: Test 5 — bmlab-scan --network 127.0.0.2/32 (negative)
+        run: |
+          . .venv/bin/activate
+          ! bmlab-scan --network 127.0.0.2/32 | tee scan5.txt | grep -q "STM32F103RE"
+          grep -qi "No JLink Remote Servers found on the network." scan5.txt
+
+      - name: Build JLinkRemoteServer Docker image
+        run: |
+          docker build -t my-jlink-image -f .github/workflows/jlinkRemoteServerEmu.dockerfile .
+
+      - name: Cleanup jlink-net Docker network and containers
+        run: |
+          if docker network inspect jlink-net >/dev/null 2>&1; then
+            for c in $(docker network inspect jlink-net -f '{{range .Containers}}{{.Name}} {{end}}'); do
+              docker rm -f "$c" || true
+            done
+            docker network rm jlink-net || true
+          fi
+
+      - name: Setup JLinkRemoteServer Docker containers for Tests 6-7
+        run: |
+          docker network rm jlink-net || true
+          docker network create --subnet=$VNET_BASE.0/$VNET_MASK jlink-net
+          
+          serial1=$(sed -n '1p' serials.txt)
+          serial2=$(sed -n '2p' serials.txt)
+          serial3=$(sed -n '3p' serials.txt)
+          docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink100 --network jlink-net --ip $VNET_BASE.100 \
+            my-jlink-image \
+            -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd
+          docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink101 --network jlink-net --ip $VNET_BASE.101 \
+            my-jlink-image \
+            -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd
+          docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink102 --network jlink-net --ip $VNET_BASE.102 \
+            my-jlink-image \
+            -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
+          
+      - name: Show JLinkRemoteServer Docker container status and logs
+        run: |
+          docker ps -a
+          echo '--- jlink100 logs ---'
+          docker logs jlink100 || true
+          echo '--- jlink101 logs ---'
+          docker logs jlink101 || true
+          echo '--- jlink102 logs ---'
+          docker logs jlink102 || true
+
+          for ip in 100 101 102; do
+            echo "--- Checking $VNET_BASE.$ip ---"
+            ping -c 2 $VNET_BASE.$ip || echo "Ping to $VNET_BASE.$ip failed"
+            nc -zvw3 $VNET_BASE.$ip 19020 || echo "Port 19020 not open on $VNET_BASE.$ip"
+          done
+
+
+      - name: Test 6 — Multiple RemoteServers, bmlab-scan --network $VNET_BASE.0/$VNET_MASK
+        run: |
+          . .venv/bin/activate
+
+          sleep 5
+
+          # It is assumed that RemoteServers are already running on .100, .101, .102
+          bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan6.txt
+          for ip in 100 101 102; do
+            grep -q "$VNET_BASE.$ip" scan6.txt || (echo "No result for .$ip"; exit 1)
+          done
+
+      - name: Test 7 — bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150
+        run: |
+          . .venv/bin/activate
+          bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150 | tee scan7.txt
+          for ip in 100 101 102; do
+            grep -q "$VNET_BASE.$ip" scan7.txt || (echo "No result for .$ip"; exit 1)
+          done
