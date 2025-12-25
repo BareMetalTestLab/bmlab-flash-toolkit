@@ -79,6 +79,15 @@ jobs:
         run: |
           docker build -t my-jlink-image -f .github/workflows/jlinkRemoteServerEmu.dockerfile .
 
+      - name: Cleanup jlink-net Docker network and containers
+        run: |
+          if docker network inspect jlink-net >/dev/null 2>&1; then
+            for c in $(docker network inspect jlink-net -f '{{range .Containers}}{{.Name}} {{end}}'); do
+              docker rm -f "$c" || true
+            done
+            docker network rm jlink-net || true
+          fi
+
       - name: Setup JLinkRemoteServer Docker containers for Tests 6-7
         run: |
           docker network rm jlink-net || true
@@ -126,3 +135,4 @@ jobs:
           for ip in 100 101 102; do
             grep -q "$VNET_BASE.$ip" scan7.txt || (echo "No result for .$ip"; exit 1)
           done
+          
