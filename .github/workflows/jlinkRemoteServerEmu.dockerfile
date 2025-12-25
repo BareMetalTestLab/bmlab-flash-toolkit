@@ -19,15 +19,15 @@ RUN apt-get update && \
 
 
 # Copy both JLink packages into the container (they must be present in build context)
-COPY JLink_Linux_V786e_x86_64.deb /tmp/JLink_Linux_V786e_x86_64.deb
-COPY JLink_Linux_V786e_arm64.deb /tmp/JLink_Linux_V786e_arm64.deb
+COPY JLink_Linux_V896_x86_64.deb /tmp/JLink_Linux_V896_x86_64.deb
+COPY JLink_Linux_V896_arm64.deb /tmp/JLink_Linux_V896_arm64.deb
 
 # Install the appropriate JLink package depending on architecture
 RUN arch=$(uname -m) && \
     if [ "$arch" = "x86_64" ]; then \
-        dpkg -i /tmp/JLink_Linux_V786e_x86_64.deb; \
+        dpkg -i /tmp/JLink_Linux_V896_x86_64.deb; \
     elif [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then \
-        dpkg -i /tmp/JLink_Linux_V786e_arm64.deb; \
+        dpkg -i /tmp/JLink_Linux_V896_arm64.deb; \
     else \
         echo "Unsupported architecture: $arch" && exit 1; \
     fi && \
