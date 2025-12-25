@@ -1,5 +1,5 @@
 # Set JLink version as build argument
-ARG JLINK_VERSION=V794e
+ARG JLINK_VERSION=V896
 ##
 # Usage example:
 # Build:
