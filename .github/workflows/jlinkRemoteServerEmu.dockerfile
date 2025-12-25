@@ -14,7 +14,7 @@ FROM ubuntu:22.04
 
 ## Install required packages and JLink dependencies
 RUN apt-get update && \
-    apt-get install -y wget libusb-1.0-0 && \
+    apt-get install -y wget libusb-1.0-0 libglib2.0-0 && \
     rm -rf /var/lib/apt/lists/*
 
 
