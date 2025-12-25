@@ -75,6 +75,10 @@ jobs:
           ! bmlab-scan --network 127.0.0.2/32 | tee scan5.txt | grep -q "STM32F103RE"
           grep -qi "No JLink Remote Servers found on the network." scan5.txt
 
+      - name: Build JLinkRemoteServer Docker image
+        run: |
+          docker build -t my-jlink-image -f .github/workflows/jlinkRemoteServerEmu.dockerfile .
+
       - name: Setup JLinkRemoteServer Docker containers for Tests 6-7
         run: |
           docker network inspect jlink-net >/dev/null 2>&1 || \
