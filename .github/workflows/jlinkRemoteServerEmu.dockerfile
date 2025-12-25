@@ -1,5 +1,3 @@
-# Set JLink version as build argument
-ARG JLINK_VERSION=V896
 ##
 # Usage example:
 # Build:
@@ -29,13 +27,13 @@ WORKDIR /tmp
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
         wget --post-data "accept_license_agreement=accepted" \
-        https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_x86_64.deb \
+        https://www.segger.com/downloads/jlink/JLink_Linux_V794e_x86_64.deb \
         -O JLink.deb && \
         dpkg --force-depends -i JLink.deb && \
         rm JLink.deb; \
     elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
         wget --post-data "accept_license_agreement=accepted" \
-        https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_arm64.deb \
+        https://www.segger.com/downloads/jlink/JLink_Linux_V794e_arm64.deb \
         -O JLink.deb && \
         dpkg --force-depends -i JLink.deb && \
         rm JLink.deb; \
