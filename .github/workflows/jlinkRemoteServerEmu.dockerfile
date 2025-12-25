@@ -14,13 +14,19 @@ FROM ubuntu:22.04
 
 ## Install required packages and JLink dependencies
 RUN apt-get update && \
-    apt-get install -y wget libusb-1.0-0 libglib2.0-0 libice6 udev libsm6 && \
+    apt-get install -y wget libusb-1.0-0 udev && \
     rm -rf /var/lib/apt/lists/*
 
 
 # Copy both JLink packages into the container (they must be present in build context)
 # COPY .github/workflows/JLink_Linux_${JLINK_VERSION}_x86_64.deb /tmp/JLink_Linux_${JLINK_VERSION}_x86_64.deb
 # COPY .github/workflows/JLink_Linux_${JLINK_VERSION}_arm64.deb /tmp/JLink_Linux_${JLINK_VERSION}_arm64.deb
+
+# Workaround: replace udevadm with a stub to avoid postinst errors in Docker
+RUN if [ -f /bin/udevadm ]; then mv /bin/udevadm /bin/udevadm.real; fi && \
+    echo '#!/bin/bash' > /bin/udevadm && \
+    echo 'exit 0' >> /bin/udevadm && \
+    chmod +x /bin/udevadm
 
 # Install the appropriate JLink package depending on architecture (force install, then fix deps)
 WORKDIR /tmp
@@ -38,6 +44,9 @@ RUN ARCH=$(uname -m) && \
         dpkg --force-depends -i JLink.deb && \
         rm JLink.deb; \
     fi
+
+# Restore real udevadm after J-Link installation
+RUN if [ -f /bin/udevadm.real ]; then rm /bin/udevadm && mv /bin/udevadm.real /bin/udevadm; fi
 
 # Add user (optional)
 RUN useradd -ms /bin/bash jlink
