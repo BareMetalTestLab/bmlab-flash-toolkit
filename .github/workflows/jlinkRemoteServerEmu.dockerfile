@@ -25,9 +25,9 @@ COPY .github/workflows/JLink_Linux_V896_arm64.deb /tmp/JLink_Linux_V896_arm64.de
 # Install the appropriate JLink package depending on architecture (force install, then fix deps)
 RUN arch=$(uname -m) && \
     if [ "$arch" = "x86_64" ]; then \
-        dpkg --force-depends -i /tmp/JLink_Linux_V786e_x86_64.deb; \
+        dpkg --force-depends -i /tmp/JLink_Linux_V896_x86_64.deb; \
     elif [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then \
-        dpkg --force-depends -i /tmp/JLink_Linux_V786e_arm64.deb; \
+        dpkg --force-depends -i /tmp/JLink_Linux_V896_arm64.deb; \
     else \
         echo "Unsupported architecture: $arch" && exit 1; \
     fi && \
