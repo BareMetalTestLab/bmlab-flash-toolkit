@@ -19,8 +19,8 @@ RUN apt-get update && \
 
 
 # Copy both JLink packages into the container (they must be present in build context)
-COPY JLink_Linux_V896_x86_64.deb /tmp/JLink_Linux_V896_x86_64.deb
-COPY JLink_Linux_V896_arm64.deb /tmp/JLink_Linux_V896_arm64.deb
+COPY .github/workflows/JLink_Linux_V896_x86_64.deb /tmp/JLink_Linux_V896_x86_64.deb
+COPY .github/workflows/JLink_Linux_V896_arm64.deb /tmp/JLink_Linux_V896_arm64.deb
 
 # Install the appropriate JLink package depending on architecture
 RUN arch=$(uname -m) && \
