@@ -26,24 +26,19 @@ COPY .github/workflows/JLink_Linux_${JLINK_VERSION}_arm64.deb /tmp/JLink_Linux_$
 
 # Install the appropriate JLink package depending on architecture (force install, then fix deps)
 WORKDIR /tmp
-RUN if [ "${ENABLE_JLINK}" = "true" ]; then \
-        ARCH=$(uname -m) && \
-        if [ "$ARCH" = "x86_64" ]; then \
-            wget --post-data "accept_license_agreement=accepted" \
-            https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_x86_64.deb \
-            -O JLink.deb && \
-            dpkg --force-depends -i JLink.deb && \
-            rm JLink.deb; \
-        elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
-            wget --post-data "accept_license_agreement=accepted" \
-            https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_arm64.deb \
-            -O JLink.deb && \
-            dpkg --force-depends -i JLink.deb && \
-            rm JLink.deb; \
-        fi && \
-        echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="1366", MODE="0666"' > /etc/udev/rules.d/99-jlink.rules; \
-    else \
-        echo "Skipping J-Link installation (ENABLE_JLINK=${ENABLE_JLINK})"; \
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        wget --post-data "accept_license_agreement=accepted" \
+        https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_x86_64.deb \
+        -O JLink.deb && \
+        dpkg --force-depends -i JLink.deb && \
+        rm JLink.deb; \
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+        wget --post-data "accept_license_agreement=accepted" \
+        https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_arm64.deb \
+        -O JLink.deb && \
+        dpkg --force-depends -i JLink.deb && \
+        rm JLink.deb; \
     fi
 
 # Add user (optional)
