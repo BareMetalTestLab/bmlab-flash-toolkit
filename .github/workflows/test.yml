@@ -81,8 +81,8 @@ jobs:
 
       - name: Setup JLinkRemoteServer Docker containers for Tests 6-7
         run: |
-          docker network inspect jlink-net >/dev/null 2>&1 || \
-            docker network create --subnet=$VNET_BASE.0/$VNET_MASK jlink-net
+          docker network rm jlink-net || true
+          docker network create --subnet=$VNET_BASE.0/$VNET_MASK jlink-net
           for ip in 100 101 102; do
             docker run -d --rm --name jlink$ip --network jlink-net --ip $VNET_BASE.$ip \
               my-jlink-image \
