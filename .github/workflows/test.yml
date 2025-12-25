@@ -96,13 +96,13 @@ jobs:
           serial1=$(sed -n '1p' serials.txt)
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
-          docker run -d --rm --name jlink100 --network jlink-net --ip $VNET_BASE.100 \
+          docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink100 --network jlink-net --ip $VNET_BASE.100 \
             my-jlink-image \
             -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd
-          docker run -d --rm --name jlink101 --network jlink-net --ip $VNET_BASE.101 \
+          docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink101 --network jlink-net --ip $VNET_BASE.101 \
             my-jlink-image \
             -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd
-          docker run -d --rm --name jlink102 --network jlink-net --ip $VNET_BASE.102 \
+          docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink102 --network jlink-net --ip $VNET_BASE.102 \
             my-jlink-image \
             -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
           
