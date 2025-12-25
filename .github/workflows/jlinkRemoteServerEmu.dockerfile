@@ -1,3 +1,5 @@
+# Set JLink version as build argument
+ARG JLINK_VERSION=V794e
 ##
 # Usage example:
 # Build:
@@ -19,19 +21,30 @@ RUN apt-get update && \
 
 
 # Copy both JLink packages into the container (they must be present in build context)
-COPY .github/workflows/JLink_Linux_V896_x86_64.deb /tmp/JLink_Linux_V896_x86_64.deb
-COPY .github/workflows/JLink_Linux_V896_arm64.deb /tmp/JLink_Linux_V896_arm64.deb
+COPY .github/workflows/JLink_Linux_${JLINK_VERSION}_x86_64.deb /tmp/JLink_Linux_${JLINK_VERSION}_x86_64.deb
+COPY .github/workflows/JLink_Linux_${JLINK_VERSION}_arm64.deb /tmp/JLink_Linux_${JLINK_VERSION}_arm64.deb
 
 # Install the appropriate JLink package depending on architecture (force install, then fix deps)
-RUN arch=$(uname -m) && \
-    if [ "$arch" = "x86_64" ]; then \
-        dpkg --force-depends -i /tmp/JLink_Linux_V896_x86_64.deb; \
-    elif [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then \
-        dpkg --force-depends -i /tmp/JLink_Linux_V896_arm64.deb; \
+WORKDIR /tmp
+RUN if [ "${ENABLE_JLINK}" = "true" ]; then \
+        ARCH=$(uname -m) && \
+        if [ "$ARCH" = "x86_64" ]; then \
+            wget --post-data "accept_license_agreement=accepted" \
+            https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_x86_64.deb \
+            -O JLink.deb && \
+            dpkg --force-depends -i JLink.deb && \
+            rm JLink.deb; \
+        elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
+            wget --post-data "accept_license_agreement=accepted" \
+            https://www.segger.com/downloads/jlink/JLink_Linux_${JLINK_VERSION}_arm64.deb \
+            -O JLink.deb && \
+            dpkg --force-depends -i JLink.deb && \
+            rm JLink.deb; \
+        fi && \
+        echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="1366", MODE="0666"' > /etc/udev/rules.d/99-jlink.rules; \
     else \
-        echo "Unsupported architecture: $arch" && exit 1; \
-    fi && \
-    apt-get install -f -y
+        echo "Skipping J-Link installation (ENABLE_JLINK=${ENABLE_JLINK})"; \
+    fi
 
 # Add user (optional)
 RUN useradd -ms /bin/bash jlink
