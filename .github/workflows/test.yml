@@ -97,6 +97,16 @@ jobs:
             my-jlink-image \
             -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
           
+      - name: Show JLinkRemoteServer Docker container status and logs
+        run: |
+          docker ps -a
+          echo '--- jlink100 logs ---'
+          docker logs jlink100 || true
+          echo '--- jlink101 logs ---'
+          docker logs jlink101 || true
+          echo '--- jlink102 logs ---'
+          docker logs jlink102 || true
+
       - name: Test 6 — Multiple RemoteServers, bmlab-scan --network $VNET_BASE.0/$VNET_MASK
         run: |
           . .venv/bin/activate
