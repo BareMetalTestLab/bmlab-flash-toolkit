@@ -83,22 +83,23 @@ jobs:
         run: |
           docker network rm jlink-net || true
           docker network create --subnet=$VNET_BASE.0/$VNET_MASK jlink-net
-          for ip in 100 101 102; do
-            docker run -d --rm --name jlink$ip --network jlink-net --ip $VNET_BASE.$ip \
-              my-jlink-image \
-              -select usb=SERIAL$ip -device STM32F103RE -endian little -speed 4000 -if swd
-          done
+          
+          serial1=$(sed -n '1p' serials.txt)
+          serial2=$(sed -n '2p' serials.txt)
+          serial3=$(sed -n '3p' serials.txt)
+          docker run -d --rm --name jlink100 --network jlink-net --ip $VNET_BASE.100 \
+            my-jlink-image \
+            -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd
+          docker run -d --rm --name jlink101 --network jlink-net --ip $VNET_BASE.101 \
+            my-jlink-image \
+            -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd
+          docker run -d --rm --name jlink102 --network jlink-net --ip $VNET_BASE.102 \
+            my-jlink-image \
+            -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
           
       - name: Test 6 — Multiple RemoteServers, bmlab-scan --network $VNET_BASE.0/$VNET_MASK
         run: |
           . .venv/bin/activate
-
-          serial1=$(sed -n '1p' serials.txt)
-          serial2=$(sed -n '2p' serials.txt)
-          serial3=$(sed -n '3p' serials.txt)
-          nohup JLinkRemoteServer -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd > remote_server_100.log 2>&1 &
-          nohup JLinkRemoteServer -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd > remote_server_101.log 2>&1 &
-          nohup JLinkRemoteServer -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd > remote_server_102.log 2>&1 &
 
           sleep 5
 
