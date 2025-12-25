@@ -116,6 +116,13 @@ jobs:
           echo '--- jlink102 logs ---'
           docker logs jlink102 || true
 
+          for ip in 100 101 102; do
+            echo "--- Checking $VNET_BASE.$ip ---"
+            ping -c 2 $VNET_BASE.$ip || echo "Ping to $VNET_BASE.$ip failed"
+            nc -zvw3 $VNET_BASE.$ip 19020 || echo "Port 19020 not open on $VNET_BASE.$ip"
+          done
+
+
       - name: Test 6 — Multiple RemoteServers, bmlab-scan --network $VNET_BASE.0/$VNET_MASK
         run: |
           . .venv/bin/activate
@@ -135,4 +142,3 @@ jobs:
           for ip in 100 101 102; do
             grep -q "$VNET_BASE.$ip" scan7.txt || (echo "No result for .$ip"; exit 1)
           done
-          
