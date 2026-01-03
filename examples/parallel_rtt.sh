@@ -72,7 +72,7 @@ read_rtt() {
     local timeout="$3"
     local logfile="$OUTPUT_DIR/rtt_${ip}.log"
     
-    local cmd="bmlab-jlink-rtt --ip $ip -t $timeout"
+    local cmd="bmlab-rtt --ip $ip -t $timeout"
     [ -n "$mcu" ] && cmd="$cmd --mcu $mcu"
     
     # Remove ANSI color codes and write unbuffered

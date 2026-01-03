@@ -56,40 +56,43 @@ bmlab-flash --help
 
 ### RTT (Real-Time Transfer)
 
-Connect to JLink RTT for real-time communication with the target device:
+Connect to RTT for real-time communication with the target device:
 
 ```bash
 # Connect with auto-detection and read for 10 seconds
-bmlab-jlink-rtt
+bmlab-rtt
 
-# Specify JLink serial number
-bmlab-jlink-rtt --serial 123456789
+# Specify programmer serial number
+bmlab-rtt --serial 123456789
 
 # Connect via IP address (no MCU needed)
-bmlab-jlink-rtt --ip 192.168.1.100
+bmlab-rtt --ip 192.168.1.100
 
 # Specify MCU explicitly
-bmlab-jlink-rtt --mcu STM32F765ZG
+bmlab-rtt --mcu STM32F765ZG
 
 # Read indefinitely until Ctrl+C
-bmlab-jlink-rtt -t 0
+bmlab-rtt -t 0
 
 # Send message after connection
-bmlab-jlink-rtt --msg "hello\n"
+bmlab-rtt --msg "hello\n"
 
 # Send message after custom delay
-bmlab-jlink-rtt --msg "test" --msg-timeout 2.0
+bmlab-rtt --msg "test" --msg-timeout 2.0
 
 # Connect without resetting target
-bmlab-jlink-rtt --no-reset
+bmlab-rtt --no-reset
 
 # Verbose output
-bmlab-jlink-rtt -v
+bmlab-rtt -v
+
+# Specify programmer explicitly (default: jlink)
+bmlab-rtt --programmer jlink --serial 123456
 ```
 
 Get RTT help:
 ```bash
-bmlab-jlink-rtt --help
+bmlab-rtt --help
 ```
 
 ### Scanning for Devices

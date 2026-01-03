@@ -1,7 +1,8 @@
 """
-JLink RTT CLI
+RTT CLI
 
-Command-line interface for connecting to JLink RTT and reading/writing data.
+Command-line interface for connecting to RTT and reading/writing data.
+Supports multiple programmers (JLink by default).
 """
 
 import sys
@@ -9,44 +10,53 @@ import time
 import argparse
 import logging
 from typing import Optional
+from .constants import SUPPORTED_PROGRAMMERS, DEFAULT_PROGRAMMER, PROGRAMMER_JLINK
+from .programmer import Programmer
 from .jlink_programmer import JLinkProgrammer
 
 
 def main():
-    """Main entry point for bmlab-jlink-rtt command."""
+    """Main entry point for bmlab-rtt command."""
     parser = argparse.ArgumentParser(
-        description='Connect to JLink RTT for real-time data transfer',
+        description='Connect to RTT for real-time data transfer',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Connect with auto-detect and read for 10 seconds
-  bmlab-jlink-rtt
+  bmlab-rtt
 
   # Specify JLink serial number
-  bmlab-jlink-rtt --serial 123456789
+  bmlab-rtt --serial 123456789
 
   # Connect via IP address (MCU not needed)
-  bmlab-jlink-rtt --ip 192.168.1.100
+  bmlab-rtt --ip 192.168.1.100
 
   # Specify MCU explicitly
-  bmlab-jlink-rtt --mcu STM32F765ZG
+  bmlab-rtt --mcu STM32F765ZG
 
   # Read indefinitely until Ctrl+C
-  bmlab-jlink-rtt -t 0
+  bmlab-rtt -t 0
 
   # Send message after connection
-  bmlab-jlink-rtt --msg "hello\\n"
+  bmlab-rtt --msg "hello\\n"
 
   # Send message after 2 seconds delay
-  bmlab-jlink-rtt --msg "test" --msg-timeout 2.0
+  bmlab-rtt --msg "test" --msg-timeout 2.0
 
   # No reset on connection
-  bmlab-jlink-rtt --no-reset
+  bmlab-rtt --no-reset
+  
+  # Specify programmer explicitly (default: jlink)
+  bmlab-rtt --programmer jlink --serial 123456
         """
     )
     
     parser.add_argument('--serial', '-s', type=str, default=None,
-                       help='JLink serial number (auto-detect if not provided)')
+                       help='Programmer serial number (auto-detect if not provided)')
+    
+    parser.add_argument('--programmer', '-p', type=str, default=DEFAULT_PROGRAMMER,
+                       choices=SUPPORTED_PROGRAMMERS,
+                       help=f'Programmer type (default: {DEFAULT_PROGRAMMER})')
     
     parser.add_argument('--ip', type=str, default=None,
                        help='JLink IP address for network connection (e.g., 192.168.1.100)')
@@ -99,7 +109,10 @@ Examples:
         log_level = getattr(logging, args.log_level.upper())
         
         # Create programmer instance
-        prog = JLinkProgrammer(serial=serial, ip_addr=ip_addr, log_level=log_level)
+        if args.programmer.lower() == PROGRAMMER_JLINK:
+            prog = JLinkProgrammer(serial=serial, ip_addr=ip_addr, log_level=log_level)
+        else:
+            raise NotImplementedError(f"Programmer '{args.programmer}' is not yet implemented")
         
         # Start RTT (will connect and reset if needed)
         # When using IP, MCU is not specified (will use generic connection)

@@ -123,7 +123,7 @@
             "justMyCode": false
         },
         {
-            "name": "bmlab-jlink-rtt: RTT (auto-detect)",
+            "name": "bmlab-rtt: RTT (auto-detect)",
             "type": "debugpy",
             "request": "launch",
             "module": "bmlab_toolkit.rtt_cli",
@@ -135,7 +135,7 @@
             "justMyCode": false
         },
         {
-            "name": "bmlab-jlink-rtt: RTT with serial",
+            "name": "bmlab-rtt: RTT with serial",
             "type": "debugpy",
             "request": "launch",
             "module": "bmlab_toolkit.rtt_cli",
@@ -148,7 +148,7 @@
             "justMyCode": false
         },
         {
-            "name": "bmlab-jlink-rtt: RTT with IP",
+            "name": "bmlab-rtt: RTT with IP",
             "type": "debugpy",
             "request": "launch",
             "module": "bmlab_toolkit.rtt_cli",
@@ -161,7 +161,7 @@
             "justMyCode": false
         },
         {
-            "name": "bmlab-jlink-rtt: RTT with message",
+            "name": "bmlab-rtt: RTT with message",
             "type": "debugpy",
             "request": "launch",
             "module": "bmlab_toolkit.rtt_cli",
@@ -175,7 +175,7 @@
             "justMyCode": false
         },
         {
-            "name": "bmlab-jlink-rtt: RTT no reset",
+            "name": "bmlab-rtt: RTT no reset",
             "type": "debugpy",
             "request": "launch",
             "module": "bmlab_toolkit.rtt_cli",
