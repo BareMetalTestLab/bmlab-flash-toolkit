@@ -135,7 +135,7 @@ jobs:
             -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
           
           echo "Waiting for containers to start..."
-          sleep 2
+          sleep 5
           docker ps --filter "network=jlink-net"
           
       - name: Show JLinkRemoteServer Docker container status and logs
@@ -166,14 +166,13 @@ jobs:
         run: |
           . .venv/bin/activate
 
-          echo "=== Verifying container connectivity ==="
+          echo "=== Quick container connectivity check ==="
           for ip in 100 101 102; do
             echo "Testing $VNET_BASE.$ip:19020"
-            timeout 5 bash -c "</dev/tcp/$VNET_BASE.$ip/19020" 2>/dev/null && echo "Port 19020 accessible on $VNET_BASE.$ip" || echo "Port 19020 not accessible on $VNET_BASE.$ip"
+            nc -zvw3 $VNET_BASE.$ip 19020 2>&1 | grep -q succeeded && echo "  ✓ Port 19020 accessible" || echo "  ✗ Port 19020 not accessible"
           done
 
-          sleep 3
-
+          echo "=== Running network scan ==="
           # It is assumed that RemoteServers are already running on .100, .101, .102
           bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan6.txt
           for ip in 100 101 102; do
