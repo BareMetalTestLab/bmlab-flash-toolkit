@@ -226,6 +226,7 @@ jobs:
           echo "=== Validating results ==="
           echo "Scan output:"
           cat scan6.txt
+          echo "=== End of scan output ==="
           
           # Check that scan found devices (not just scanning message)
           if grep -q "No JLink Remote Servers found" scan6.txt; then
@@ -234,7 +235,8 @@ jobs:
           fi
           
           # Count how many STM32F103RE devices found
-          count=$(grep -c "Target:.*STM32F103RE" scan6.txt 2>/dev/null || echo "0")
+          count=$(grep "Target:.*STM32F103RE" scan6.txt 2>/dev/null | wc -l)
+          count=$(echo "$count" | tr -d '[:space:]')
           echo "Found $count STM32F103RE devices (expected 3)"
           
           if [ "$count" -ne 3 ]; then
@@ -259,6 +261,7 @@ jobs:
           echo "=== Validating results ==="
           echo "Scan output:"
           cat scan7.txt
+          echo "=== End of scan output ==="
           
           # Check that scan found devices
           if grep -q "No JLink Remote Servers found" scan7.txt; then
@@ -267,7 +270,8 @@ jobs:
           fi
           
           # Count how many STM32F103RE devices found
-          count=$(grep -c "Target:.*STM32F103RE" scan7.txt 2>/dev/null || echo "0")
+          count=$(grep "Target:.*STM32F103RE" scan7.txt 2>/dev/null | wc -l)
+          count=$(echo "$count" | tr -d '[:space:]')
           echo "Found $count STM32F103RE devices (expected 3)"
           
           if [ "$count" -ne 3 ]; then
