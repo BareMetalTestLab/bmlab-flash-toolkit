@@ -115,6 +115,10 @@ jobs:
           docker network rm jlink-net || true
           docker network create --driver bridge --subnet=$VNET_BASE.0/$VNET_MASK --gateway=$VNET_BASE.1 jlink-net
           
+          echo "=== Serial numbers from Test 1 ==="
+          cat serials.txt
+          echo "==="
+          
           serial1=$(sed -n '1p' serials.txt)
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
@@ -123,11 +127,13 @@ jobs:
           docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink100 --network jlink-net --ip $VNET_BASE.100 \
             my-jlink-image \
             -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd
+          sleep 2
           
           echo "Starting jlink101 with serial $serial2 on IP $VNET_BASE.101"
           docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink101 --network jlink-net --ip $VNET_BASE.101 \
             my-jlink-image \
             -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd
+          sleep 2
           
           echo "Starting jlink102 with serial $serial3 on IP $VNET_BASE.102"
           docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink102 --network jlink-net --ip $VNET_BASE.102 \
@@ -153,6 +159,12 @@ jobs:
           docker logs jlink101 || true
           echo '--- jlink102 logs ---'
           docker logs jlink102 || true
+          
+          echo "\n=== Validating container connections ==="
+          for c in jlink100 jlink101 jlink102; do
+            echo "Container $c:"
+            docker logs $c 2>&1 | grep -E "(Connected to|S/N|STM32F103RE|Error)" || echo "  No connection info found"
+          done
 
           echo "\n=== Network Connectivity Check ==="
           for ip in 100 101 102; do
@@ -205,14 +217,23 @@ jobs:
             exit 1
           fi
           
-          # Check for each IP in found results (look for lines with device info, not scan progress)
+          # Count how many STM32F103RE devices found
+          count=$(grep -c "Target:.*STM32F103RE" scan6.txt || echo 0)
+          echo "Found $count STM32F103RE devices (expected 3)"
+          
+          if [ "$count" -ne 3 ]; then
+            echo "Test 6 failed: Expected 3 STM32F103RE devices, found $count"
+            exit 1
+          fi
+          
+          # Check for each IP in found results
           for ip in 100 101 102; do
             if ! grep -E "(IP:|Address:).*$VNET_BASE\.$ip" scan6.txt; then
               echo "Test 6 failed: No device found at $VNET_BASE.$ip"
               exit 1
             fi
           done
-          echo "Test 6 passed: All 3 devices found"
+          echo "Test 6 passed: All 3 STM32F103RE devices found"
 
       - name: Test 7 — bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150
         run: |
@@ -229,6 +250,15 @@ jobs:
             exit 1
           fi
           
+          # Count how many STM32F103RE devices found
+          count=$(grep -c "Target:.*STM32F103RE" scan7.txt || echo 0)
+          echo "Found $count STM32F103RE devices (expected 3)"
+          
+          if [ "$count" -ne 3 ]; then
+            echo "Test 7 failed: Expected 3 STM32F103RE devices, found $count"
+            exit 1
+          fi
+          
           # Check for each IP in found results
           for ip in 100 101 102; do
             if ! grep -E "(IP:|Address:).*$VNET_BASE\.$ip" scan7.txt; then
@@ -236,7 +266,7 @@ jobs:
               exit 1
             fi
           done
-          echo "Test 7 passed: All 3 devices found"
+          echo "Test 7 passed: All 3 STM32F103RE devices found"
 
       - name: Cleanup after Docker tests
         if: always()
