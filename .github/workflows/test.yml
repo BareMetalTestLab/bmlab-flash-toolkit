@@ -135,7 +135,7 @@ jobs:
             -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
           
           echo "Waiting for containers to start..."
-          sleep 5
+          sleep 10
           docker ps --filter "network=jlink-net"
           
       - name: Show JLinkRemoteServer Docker container status and logs
@@ -161,33 +161,46 @@ jobs:
             nc -zvw3 $VNET_BASE.$ip 19020 || echo "Port 19020 not open on $VNET_BASE.$ip"
             docker exec jlink$ip ip addr show || true
           done
+          
+          echo "\n=== Validating ports are accessible ==="
+          failed=0
+          for ip in 100 101 102; do
+            if ! nc -zvw3 $VNET_BASE.$ip 19020 2>&1 | grep -q succeeded; then
+              echo "ERROR: Port 19020 not accessible on $VNET_BASE.$ip"
+              failed=1
+            fi
+          done
+          if [ $failed -eq 1 ]; then
+            echo "Containers are not ready, failing..."
+            exit 1
+          fi
+          echo "All containers are ready"
 
       - name: Test 6 — Multiple RemoteServers, bmlab-scan --network $VNET_BASE.0/$VNET_MASK
         run: |
           . .venv/bin/activate
 
-          echo "=== Waiting for containers to be ready ==="
-          sleep 3
-
-          echo "=== Quick container connectivity check ==="
-          for ip in 100 101 102; do
-            echo "Testing $VNET_BASE.$ip:19020"
-            nc -zvw3 $VNET_BASE.$ip 19020 2>&1 | grep -q succeeded && echo "  ✓ Port 19020 accessible" || echo "  ✗ Port 19020 not accessible"
-          done
-
           echo "=== Running network scan ==="
-          # It is assumed that RemoteServers are already running on .100, .101, .102
           bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan6.txt
           
           echo "=== Validating results ==="
+          echo "Scan output:"
+          cat scan6.txt
+          
+          # Check that scan found devices (not just scanning message)
+          if grep -q "No JLink Remote Servers found" scan6.txt; then
+            echo "Test 6 failed: No JLink Remote Servers found"
+            exit 1
+          fi
+          
+          # Check for each IP in found results (look for lines with device info, not scan progress)
           for ip in 100 101 102; do
-            if ! grep -q "$VNET_BASE.$ip" scan6.txt; then
-              echo "Test 6 failed: No result for $VNET_BASE.$ip"
-              cat scan6.txt
+            if ! grep -E "(IP:|Address:).*$VNET_BASE\.$ip" scan6.txt; then
+              echo "Test 6 failed: No device found at $VNET_BASE.$ip"
               exit 1
             fi
           done
-          echo "Test 6 passed: All 3 IPs found"
+          echo "Test 6 passed: All 3 devices found"
 
       - name: Test 7 — bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150
         run: |
@@ -195,14 +208,23 @@ jobs:
           bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150 | tee scan7.txt
           
           echo "=== Validating results ==="
+          echo "Scan output:"
+          cat scan7.txt
+          
+          # Check that scan found devices
+          if grep -q "No JLink Remote Servers found" scan7.txt; then
+            echo "Test 7 failed: No JLink Remote Servers found"
+            exit 1
+          fi
+          
+          # Check for each IP in found results
           for ip in 100 101 102; do
-            if ! grep -q "$VNET_BASE.$ip" scan7.txt; then
-              echo "Test 7 failed: No result for $VNET_BASE.$ip"
-              cat scan7.txt
+            if ! grep -E "(IP:|Address:).*$VNET_BASE\.$ip" scan7.txt; then
+              echo "Test 7 failed: No device found at $VNET_BASE.$ip"
               exit 1
             fi
           done
-          echo "Test 7 passed: All 3 IPs found"
+          echo "Test 7 passed: All 3 devices found"
 
       - name: Cleanup after Docker tests
         if: always()
