@@ -12,11 +12,11 @@ from typing import Optional, List, Dict, Any
 from .programmer import Programmer, DBGMCU_IDCODE_ADDRESSES, DEVICE_ID_MAP, DEFAULT_MCU_MAP
 
 # Configure default logging level for JLinkProgrammer
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
 
 # Suppress pylink logger to avoid communication timeout errors during disconnect
 pylink_logger = logging.getLogger('pylink')
-pylink_logger.setLevel(logging.DEBUG)
+pylink_logger.setLevel(logging.INFO)
 
 
 class JLinkProgrammer(Programmer):
