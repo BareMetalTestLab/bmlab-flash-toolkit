@@ -64,6 +64,7 @@ jobs:
       - name: Test 4 — bmlab-scan --network 127.0.0.1/32 -p jlink
         run: |
           . .venv/bin/activate
+          serial=$(head -n1 serials.txt)
           nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > remote_server.log 2>&1 &
           sleep 3
           bmlab-scan --network 127.0.0.1/32 -p jlink | tee scan4.txt
@@ -91,24 +92,40 @@ jobs:
       - name: Setup JLinkRemoteServer Docker containers for Tests 6-7
         run: |
           docker network rm jlink-net || true
-          docker network create --subnet=$VNET_BASE.0/$VNET_MASK jlink-net
+          docker network create --driver bridge --subnet=$VNET_BASE.0/$VNET_MASK --gateway=$VNET_BASE.1 jlink-net
           
           serial1=$(sed -n '1p' serials.txt)
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
+          
+          echo "Starting jlink100 with serial $serial1 on IP $VNET_BASE.100"
           docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink100 --network jlink-net --ip $VNET_BASE.100 \
             my-jlink-image \
             -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd
+          
+          echo "Starting jlink101 with serial $serial2 on IP $VNET_BASE.101"
           docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink101 --network jlink-net --ip $VNET_BASE.101 \
             my-jlink-image \
             -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd
+          
+          echo "Starting jlink102 with serial $serial3 on IP $VNET_BASE.102"
           docker run -d --rm --device=/dev/bus/usb:/dev/bus/usb --name jlink102 --network jlink-net --ip $VNET_BASE.102 \
             my-jlink-image \
             -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
           
+          echo "Waiting for containers to start..."
+          sleep 2
+          docker ps --filter "network=jlink-net"
+          
       - name: Show JLinkRemoteServer Docker container status and logs
         run: |
-          docker ps -a
+          echo "=== Docker Network Info ==="
+          docker network inspect jlink-net
+          
+          echo "\n=== Container Status ==="
+          docker ps -a --filter "network=jlink-net"
+          
+          echo "\n=== Container Logs ==="
           echo '--- jlink100 logs ---'
           docker logs jlink100 || true
           echo '--- jlink101 logs ---'
@@ -116,18 +133,25 @@ jobs:
           echo '--- jlink102 logs ---'
           docker logs jlink102 || true
 
+          echo "\n=== Network Connectivity Check ==="
           for ip in 100 101 102; do
             echo "--- Checking $VNET_BASE.$ip ---"
             ping -c 2 $VNET_BASE.$ip || echo "Ping to $VNET_BASE.$ip failed"
             nc -zvw3 $VNET_BASE.$ip 19020 || echo "Port 19020 not open on $VNET_BASE.$ip"
+            docker exec jlink$ip ip addr show || true
           done
-
 
       - name: Test 6 — Multiple RemoteServers, bmlab-scan --network $VNET_BASE.0/$VNET_MASK
         run: |
           . .venv/bin/activate
 
-          sleep 5
+          echo "=== Verifying container connectivity ==="
+          for ip in 100 101 102; do
+            echo "Testing $VNET_BASE.$ip:19020"
+            timeout 5 bash -c "</dev/tcp/$VNET_BASE.$ip/19020" 2>/dev/null && echo "Port 19020 accessible on $VNET_BASE.$ip" || echo "Port 19020 not accessible on $VNET_BASE.$ip"
+          done
+
+          sleep 3
 
           # It is assumed that RemoteServers are already running on .100, .101, .102
           bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan6.txt
