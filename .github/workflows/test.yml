@@ -165,9 +165,11 @@ jobs:
           echo "\n=== Validating ports are accessible ==="
           failed=0
           for ip in 100 101 102; do
-            if ! nc -zvw3 $VNET_BASE.$ip 19020 2>&1 | grep -q succeeded; then
+            if ! nc -zvw3 $VNET_BASE.$ip 19020 2>&1 | grep -qE "(succeeded|open)"; then
               echo "ERROR: Port 19020 not accessible on $VNET_BASE.$ip"
               failed=1
+            else
+              echo "✓ Port 19020 is accessible on $VNET_BASE.$ip"
             fi
           done
           if [ $failed -eq 1 ]; then
