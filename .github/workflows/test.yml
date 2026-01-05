@@ -166,6 +166,9 @@ jobs:
         run: |
           . .venv/bin/activate
 
+          echo "=== Waiting for containers to be ready ==="
+          sleep 3
+
           echo "=== Quick container connectivity check ==="
           for ip in 100 101 102; do
             echo "Testing $VNET_BASE.$ip:19020"
@@ -175,17 +178,31 @@ jobs:
           echo "=== Running network scan ==="
           # It is assumed that RemoteServers are already running on .100, .101, .102
           bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan6.txt
+          
+          echo "=== Validating results ==="
           for ip in 100 101 102; do
-            grep -q "$VNET_BASE.$ip" scan6.txt || (echo "No result for .$ip"; exit 1)
+            if ! grep -q "$VNET_BASE.$ip" scan6.txt; then
+              echo "Test 6 failed: No result for $VNET_BASE.$ip"
+              cat scan6.txt
+              exit 1
+            fi
           done
+          echo "Test 6 passed: All 3 IPs found"
 
       - name: Test 7 — bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150
         run: |
           . .venv/bin/activate
           bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150 | tee scan7.txt
+          
+          echo "=== Validating results ==="
           for ip in 100 101 102; do
-            grep -q "$VNET_BASE.$ip" scan7.txt || (echo "No result for .$ip"; exit 1)
+            if ! grep -q "$VNET_BASE.$ip" scan7.txt; then
+              echo "Test 7 failed: No result for $VNET_BASE.$ip"
+              cat scan7.txt
+              exit 1
+            fi
           done
+          echo "Test 7 passed: All 3 IPs found"
 
       - name: Cleanup after Docker tests
         if: always()
