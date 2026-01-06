@@ -17,18 +17,9 @@ jobs:
       - name: Cleanup before start
         if: always()
         run: |
-          echo "=== Killing all JLinkRemoteServer processes ==="
           pkill -9 -f JLinkRemoteServer || true
-          
-          echo "=== Stopping and removing Docker containers on jlink-net ==="
-          if docker network inspect jlink-net >/dev/null 2>&1; then
-            for c in $(docker network inspect jlink-net -f '{{range .Containers}}{{.Name}} {{end}}'); do
-              docker rm -f "$c" || true
-            done
-            docker network rm jlink-net || true
-          fi
-          
-          echo "=== Cleanup completed ==="
+          docker rm -f jlink100 jlink101 jlink102 2>/dev/null || true
+          docker network rm jlink-net 2>/dev/null || true
           sleep 2
 
       - uses: actions/checkout@v4
@@ -44,16 +35,12 @@ jobs:
           . .venv/bin/activate
           bmlab-scan | tee scan1.txt
           count=$(grep -c "Target:  *STM32F103RE" scan1.txt)
-          
-          echo "=== Extracting STM32F103RE serial numbers ==="
           awk '/JLink Programmer/ {serial=""} /Serial:/ {serial=$2} /Target: *STM32F103RE/ && serial {print serial}' scan1.txt | sort | uniq > serials.txt
-          cat serials.txt
-          echo "=== Total $(wc -l < serials.txt) STM32F103RE devices ==="
           
-          if [ "$count" -eq 3 ]; then
-            echo "Test 1 passed"
-          else
-            echo "Test 1 failed: found $count STM32F103RE"; cat scan1.txt; exit 1
+          if [ "$count" -ne 3 ]; then
+            echo "Test 1 failed: expected 3 STM32F103RE, found $count"
+            cat scan1.txt
+            exit 1
           fi
 
       - name: Test 2 — bmlab-scan -p jlink
@@ -61,27 +48,16 @@ jobs:
           . .venv/bin/activate
           bmlab-scan -p jlink | tee scan2.txt
           diff scan1.txt scan2.txt
-          if [ $? -ne 0 ]; then
-            echo "Test 2 failed: output differs from Test 1"
-            exit 1
-          else
-            echo "Test 2 passed"
-          fi
           
       - name: Test 3 — Start JLinkRemoteServer and scan via network
         run: |
           . .venv/bin/activate
           serial=$(head -n1 serials.txt)
-          echo "Using serial: $serial"
-          nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > remote_server.log 2>&1 &
+          nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > /dev/null 2>&1 &
           sleep 3
           bmlab-scan --network 127.0.0.1/32 | tee scan3.txt
-          cat remote_server.log
           grep -q "Target:  *STM32F103RE" scan3.txt
           grep -q "IP: *127.0.0.1" scan3.txt
-          if [ $? -ne 0 ]; then
-            cat scan3.txt
-          fi
           pkill -9 -f JLinkRemoteServer || true
           sleep 1
 
@@ -89,7 +65,7 @@ jobs:
         run: |
           . .venv/bin/activate
           serial=$(head -n1 serials.txt)
-          nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > remote_server.log 2>&1 &
+          nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > /dev/null 2>&1 &
           sleep 3
           bmlab-scan --network 127.0.0.1/32 -p jlink | tee scan4.txt
           diff scan3.txt scan4.txt
@@ -106,53 +82,19 @@ jobs:
         run: |
           docker build -t my-jlink-image -f .github/workflows/jlinkRemoteServerEmu.dockerfile .
 
-      - name: Cleanup jlink-net Docker network and containers
+      - name: Cleanup jlink-net Docker network
         run: |
-          if docker network inspect jlink-net >/dev/null 2>&1; then
-            for c in $(docker network inspect jlink-net -f '{{range .Containers}}{{.Name}} {{end}}'); do
-              docker rm -f "$c" || true
-            done
-            docker network rm jlink-net || true
-          fi
-
-      - name: Setup JLinkRemoteServer Docker containers for Tests 6-7
-        run: |
-          echo "=== Cleaning up any existing Docker resources ==="
           docker rm -f jlink100 jlink101 jlink102 2>/dev/null || true
           docker network rm jlink-net 2>/dev/null || true
-          
-          echo "=== Creating Docker network ==="
+
+      - name: Setup JLinkRemoteServer Docker containers
+        run: |
           docker network create --driver bridge --subnet=$VNET_BASE.0/$VNET_MASK --gateway=$VNET_BASE.1 jlink-net
-          
-          echo "=== Reading serial numbers of STM32F103RE devices from Test 1 ==="
-          if [ ! -f serials.txt ]; then
-            echo "ERROR: serials.txt not found!"
-            exit 1
-          fi
-          
-          cat serials.txt
-          line_count=$(wc -l < serials.txt)
-          
-          if [ "$line_count" -ne 3 ]; then
-            echo "ERROR: Expected 3 serial numbers, found $line_count"
-            exit 1
-          fi
           
           serial1=$(sed -n '1p' serials.txt)
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
           
-          if [ -z "$serial1" ] || [ -z "$serial2" ] || [ -z "$serial3" ]; then
-            echo "ERROR: One or more serial numbers are empty"
-            exit 1
-          fi
-          
-          echo "Serial 1: $serial1 -> jlink100 ($VNET_BASE.100)"
-          echo "Serial 2: $serial2 -> jlink101 ($VNET_BASE.101)"
-          echo "Serial 3: $serial3 -> jlink102 ($VNET_BASE.102)"
-          
-          echo "=== Starting Docker containers ==="
-          echo "Container jlink100..."
           docker run -d --rm \
             --device=/dev/bus/usb:/dev/bus/usb \
             --name jlink100 \
@@ -162,7 +104,6 @@ jobs:
             -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd
           sleep 3
           
-          echo "Container jlink101..."
           docker run -d --rm \
             --device=/dev/bus/usb:/dev/bus/usb \
             --name jlink101 \
@@ -172,7 +113,6 @@ jobs:
             -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd
           sleep 3
           
-          echo "Container jlink102..."
           docker run -d --rm \
             --device=/dev/bus/usb:/dev/bus/usb \
             --name jlink102 \
@@ -180,152 +120,77 @@ jobs:
             --ip $VNET_BASE.102 \
             my-jlink-image \
             -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
-          
-          echo "=== Waiting for containers to initialize ==="
           sleep 5
-          
-          echo "=== Verifying all containers are running ==="
-          docker ps --filter "network=jlink-net" --format "table {{.Names}}\t{{.Status}}"
-          
-          running=$(docker ps --filter "network=jlink-net" --format "{{.Names}}" | wc -l)
-          if [ "$running" -ne 3 ]; then
-            echo "ERROR: Expected 3 running containers, found $running"
-            docker ps -a --filter "name=jlink"
-            exit 1
-          fi
-          
-          echo "=== Checking container logs ==="
-          for container in jlink100 jlink101 jlink102; do
-            echo "--- $container ---"
-            docker logs $container 2>&1 | head -10
-            if ! docker logs $container 2>&1 | grep -q "Connected to J-Link"; then
-              echo "ERROR: $container did not connect to J-Link!"
-              exit 1
-            fi
-          done
-          
-          echo "=== All containers started successfully ==="
           
       - name: Verify JLinkRemoteServer container connectivity
         run: |
-          echo "=== Checking network connectivity to containers ==="
           for ip in 100 101 102; do
-            echo -n "Testing $VNET_BASE.$ip:19020... "
-            if nc -zvw5 $VNET_BASE.$ip 19020 2>&1 | grep -qE "(open|succeeded)"; then
-              echo "✓ OK"
-            else
-              echo "✗ FAILED"
-              echo "ERROR: Port 19020 not accessible on $VNET_BASE.$ip"
-              docker logs jlink$ip
+            if ! nc -zvw5 $VNET_BASE.$ip 19020 2>&1 | grep -qE "(open|succeeded)"; then
+              echo "Port 19020 not accessible on $VNET_BASE.$ip"
               exit 1
             fi
           done
-          echo "All 3 containers are accessible"
 
-      - name: Test 6 — Multiple RemoteServers, bmlab-scan --network $VNET_BASE.0/$VNET_MASK
+      - name: Test 6 — Multiple RemoteServers network scan
         run: |
           . .venv/bin/activate
-          
-          echo "=== Running network scan ==="
           bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan6.txt
           
-          echo ""
-          echo "=== Validation ==="
-          
-          # Must find exactly 3 devices
           device_count=$(grep -c "^\[" scan6.txt | grep -c "JLink Remote Server" || echo 0)
-          echo "Found $device_count JLink Remote Server(s)"
+          f103_count=$(grep -c "Target:.*STM32F103RE" scan6.txt || echo 0)
           
           if [ "$device_count" -ne 3 ]; then
-            echo "FAILED: Expected 3 devices, found $device_count"
-            echo "Full scan output:"
+            echo "Expected 3 devices, found $device_count"
             cat scan6.txt
             exit 1
           fi
-          
-          # All 3 must be STM32F103RE
-          f103_count=$(grep -c "Target:.*STM32F103RE" scan6.txt || echo 0)
-          echo "Found $f103_count STM32F103RE device(s)"
           
           if [ "$f103_count" -ne 3 ]; then
-            echo "FAILED: Expected 3 STM32F103RE devices, found $f103_count"
-            echo "Full scan output:"
+            echo "Expected 3 STM32F103RE devices, found $f103_count"
             cat scan6.txt
             exit 1
           fi
           
-          # Check all 3 IPs are present
           for ip in 100 101 102; do
             if ! grep -q "IP:.*$VNET_BASE\.$ip" scan6.txt; then
-              echo "FAILED: No device found at $VNET_BASE.$ip"
-              echo "Full scan output:"
+              echo "No device found at $VNET_BASE.$ip"
               cat scan6.txt
               exit 1
             fi
           done
-          
-          echo "✓ Test 6 PASSED: Found 3 STM32F103RE devices at .100, .101, .102"
 
-      - name: Test 7 — bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150
+      - name: Test 7 — Network scan with IP range filter
         run: |
           . .venv/bin/activate
-          
-          echo "=== Running network scan with IP range ==="
           bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150 | tee scan7.txt
           
-          echo ""
-          echo "=== Validation ==="
-          
-          # Must find exactly 3 devices
           device_count=$(grep -c "^\[" scan7.txt | grep -c "JLink Remote Server" || echo 0)
-          echo "Found $device_count JLink Remote Server(s)"
+          f103_count=$(grep -c "Target:.*STM32F103RE" scan7.txt || echo 0)
           
           if [ "$device_count" -ne 3 ]; then
-            echo "FAILED: Expected 3 devices, found $device_count"
-            echo "Full scan output:"
+            echo "Expected 3 devices, found $device_count"
             cat scan7.txt
             exit 1
           fi
-          
-          # All 3 must be STM32F103RE
-          f103_count=$(grep -c "Target:.*STM32F103RE" scan7.txt || echo 0)
-          echo "Found $f103_count STM32F103RE device(s)"
           
           if [ "$f103_count" -ne 3 ]; then
-            echo "FAILED: Expected 3 STM32F103RE devices, found $f103_count"
-            echo "Full scan output:"
+            echo "Expected 3 STM32F103RE devices, found $f103_count"
             cat scan7.txt
             exit 1
           fi
           
-          # Check all 3 IPs are present
           for ip in 100 101 102; do
             if ! grep -q "IP:.*$VNET_BASE\.$ip" scan7.txt; then
-              echo "FAILED: No device found at $VNET_BASE.$ip"
-              echo "Full scan output:"
+              echo "No device found at $VNET_BASE.$ip"
               cat scan7.txt
               exit 1
             fi
           done
-          
-          echo "✓ Test 7 PASSED: Found 3 STM32F103RE devices at .100, .101, .102"
 
       - name: Cleanup after Docker tests
         if: always()
         run: |
-          echo "=== Stopping and removing Docker containers ==="
           docker rm -f jlink100 jlink101 jlink102 || true
-          
-          echo "=== Removing Docker network ==="
           docker network rm jlink-net || true
-          
-          echo "=== Killing all JLinkRemoteServer processes ==="
           pkill -9 -f JLinkRemoteServer || true
-          
-          echo "=== Waiting for USB devices to be released ==="
           sleep 2
-          
-          echo "=== Docker containers status ==="
-          docker ps -a --filter "name=jlink"
-          
-          echo "=== Cleanup completed ==="
