@@ -150,7 +150,8 @@ jobs:
           #     exit 1
           #   fi
           # done
-
+          sleep 5
+          
       - name: Test 7 — Network scan with IP range filter
         run: |
           . .venv/bin/activate
