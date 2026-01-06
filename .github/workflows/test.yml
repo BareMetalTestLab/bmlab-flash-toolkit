@@ -128,57 +128,42 @@ jobs:
           . .venv/bin/activate
           bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan6.txt
           
-          # device_count=$(grep -c "JLink Remote Server" scan6.txt || echo 0)
-          # f103_count=$(grep -c "Target:.*STM32F103RE" scan6.txt || echo 0)
+          f103_count=$(grep -c "Target:.*STM32F103RE" scan6.txt || echo 0)
           
-          # if [ "$device_count" -ne 3 ]; then
-          #   echo "Expected 3 devices, found $device_count"
-          #   cat scan6.txt
-          #   exit 1
-          # fi
+          if [ "$f103_count" -ne 3 ]; then
+            echo "Expected 3 STM32F103RE devices, found $f103_count"
+            cat scan6.txt
+            exit 1
+          fi
           
-          # if [ "$f103_count" -ne 3 ]; then
-          #   echo "Expected 3 STM32F103RE devices, found $f103_count"
-          #   cat scan6.txt
-          #   exit 1
-          # fi
-          
-          # for ip in 100 101 102; do
-          #   if ! grep -q "IP:.*$VNET_BASE\.$ip" scan6.txt; then
-          #     echo "No device found at $VNET_BASE.$ip"
-          #     cat scan6.txt
-          #     exit 1
-          #   fi
-          # done
-          sleep 5
-          
+          for ip in 100 101 102; do
+            if ! grep -q "IP:.*$VNET_BASE\.$ip" scan6.txt; then
+              echo "No device found at $VNET_BASE.$ip"
+              cat scan6.txt
+              exit 1
+            fi
+          done
+
       - name: Test 7 — Network scan with IP range filter
         run: |
           . .venv/bin/activate
           bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150 | tee scan7.txt
           
-          # device_count=$(grep -c "JLink Remote Server" scan7.txt || echo 0)
-          # f103_count=$(grep -c "Target:.*STM32F103RE" scan7.txt || echo 0)
+          f103_count=$(grep -c "Target:.*STM32F103RE" scan7.txt || echo 0)
           
-          # if [ "$device_count" -ne 3 ]; then
-          #   echo "Expected 3 devices, found $device_count"
-          #   cat scan7.txt
-          #   exit 1
-          # fi
+          if [ "$f103_count" -ne 3 ]; then
+            echo "Expected 3 STM32F103RE devices, found $f103_count"
+            cat scan7.txt
+            exit 1
+          fi
           
-          # if [ "$f103_count" -ne 3 ]; then
-          #   echo "Expected 3 STM32F103RE devices, found $f103_count"
-          #   cat scan7.txt
-          #   exit 1
-          # fi
-          
-          # for ip in 100 101 102; do
-          #   if ! grep -q "IP:.*$VNET_BASE\.$ip" scan7.txt; then
-          #     echo "No device found at $VNET_BASE.$ip"
-          #     cat scan7.txt
-          #     exit 1
-          #   fi
-          # done
+          for ip in 100 101 102; do
+            if ! grep -q "IP:.*$VNET_BASE\.$ip" scan7.txt; then
+              echo "No device found at $VNET_BASE.$ip"
+              cat scan7.txt
+              exit 1
+            fi
+          done
 
       - name: Cleanup after Docker tests
         if: always()
