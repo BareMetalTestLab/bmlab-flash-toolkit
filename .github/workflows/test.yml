@@ -89,6 +89,7 @@ jobs:
 
       - name: Setup JLinkRemoteServer Docker containers
         run: |
+          docker network rm jlink-net 2>/dev/null || true
           docker network create --driver bridge --subnet=$VNET_BASE.0/$VNET_MASK --gateway=$VNET_BASE.1 jlink-net
           
           serial1=$(sed -n '1p' serials.txt)
