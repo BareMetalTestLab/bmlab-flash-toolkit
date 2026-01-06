@@ -59,8 +59,8 @@ def scan_network_ip(ip_str, log_level):
             
             # Disconnect immediately after getting info
             prog.disconnect_target()
-            # Small delay to ensure device is fully released
-            time.sleep(0.1)
+            # Delay to ensure device is fully released before next scan
+            time.sleep(0.5)
             
             return device_info
     except Exception as e:
