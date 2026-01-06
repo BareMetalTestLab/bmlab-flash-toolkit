@@ -52,22 +52,22 @@ Connect to device RTT for real-time communication:
 
 ```bash
 # Connect with auto-detection
-bmlab-jlink-rtt
+bmlab-rtt
 
 # Connect to specific device
-bmlab-jlink-rtt --serial 123456789 --mcu STM32F765ZG
+bmlab-rtt --serial 123456789 --mcu STM32F765ZG
 
 # Connect via IP address
-bmlab-jlink-rtt --ip 192.168.1.100
+bmlab-rtt --ip 192.168.1.100
 
 # Read indefinitely
-bmlab-jlink-rtt -t 0
+bmlab-rtt -t 0
 
 # Send message
-bmlab-jlink-rtt --msg "hello\n"
+bmlab-rtt --msg "hello\n"
 
 # Get help
-bmlab-jlink-rtt --help
+bmlab-rtt --help
 ```
 
 See [RTT_GUIDE.md](RTT_GUIDE.md) for detailed RTT documentation.
