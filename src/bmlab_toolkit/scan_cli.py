@@ -8,11 +8,16 @@ import sys
 import argparse
 import logging
 import ipaddress
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from .constants import SUPPORTED_PROGRAMMERS, DEFAULT_PROGRAMMER, PROGRAMMER_JLINK
 from .jlink_programmer import JLinkProgrammer
 import socket
 import time
+
+# Global lock to serialize JLink connections (prevents state conflicts)
+_jlink_connection_lock = threading.Lock()
+
 
 def scan_network_ip(ip_str, log_level):
     """Scan a single IP for JLink Remote Server."""
@@ -32,32 +37,40 @@ def scan_network_ip(ip_str, log_level):
         return None
 
     # Try to connect and detect MCU
+    # Use lock to prevent parallel connections from interfering with each other
     prog = None
     try:
-        prog = JLinkProgrammer(ip_addr=ip_str, log_level=log_level)
-        mcu = prog.connect_target()
-        if not mcu:
-            # Connection failed
-            prog._jlink.close()
-            print(f"{ip_str}: No target detected")
-            return None
-        
-        # Successfully connected - get device info
-        device_info = {
-            'ip': ip_str,
-            'type': 'jlink-remote',
-            'status': 'Connected',
-            'target': mcu if mcu else 'Unknown'
-        }
-        
-        return device_info
+        with _jlink_connection_lock:
+            prog = JLinkProgrammer(ip_addr=ip_str, log_level=log_level)
+            mcu = prog.connect_target()
+            if not mcu:
+                # Connection failed
+                prog._jlink.close()
+                print(f"{ip_str}: No target detected")
+                return None
+            
+            # Successfully connected - get device info
+            device_info = {
+                'ip': ip_str,
+                'type': 'jlink-remote',
+                'status': 'Connected',
+                'target': mcu if mcu else 'Unknown'
+            }
+            
+            # Disconnect immediately after getting info
+            prog.disconnect_target()
+            # Delay to ensure device is fully released before next scan
+            time.sleep(0.5)
+            
+            return device_info
     except Exception as e:
         # Connection or detection failed
         return None
     finally:
         # Always close the connection
         try:
-            prog.disconnect_target()
+            if prog:
+                prog.disconnect_target()
         except:
             pass
 
@@ -198,6 +211,7 @@ Examples:
             
             # USB scan mode
             else:
+                print(f"Scanning for USB JLink programmers...\n")
                 devices = JLinkProgrammer.scan()
             
             if not devices:

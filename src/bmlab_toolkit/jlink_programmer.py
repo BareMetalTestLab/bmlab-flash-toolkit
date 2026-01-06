@@ -12,17 +12,17 @@ from typing import Optional, List, Dict, Any
 from .programmer import Programmer, DBGMCU_IDCODE_ADDRESSES, DEVICE_ID_MAP, DEFAULT_MCU_MAP
 
 # Configure default logging level for JLinkProgrammer
-logging.basicConfig(level=logging.WARNING, format='%(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
 
 # Suppress pylink logger to avoid communication timeout errors during disconnect
 pylink_logger = logging.getLogger('pylink')
-pylink_logger.setLevel(logging.WARNING)
+pylink_logger.setLevel(logging.INFO)
 
 
 class JLinkProgrammer(Programmer):
     """JLink programmer implementation."""
 
-    def __init__(self, serial: Optional[int] = None, ip_addr: Optional[str] = None, log_level: int = logging.WARNING):
+    def __init__(self, serial: Optional[int] = None, ip_addr: Optional[str] = None, log_level: int = logging.DEBUG):
         """
         Initialize JLink programmer.
         
@@ -356,20 +356,23 @@ class JLinkProgrammer(Programmer):
                 
                 # Try to detect target MCU
                 try:
-                    temp_jlink = pylink.JLink()
-                    temp_jlink.open(serial_no=emu.SerialNumber)
-                    temp_jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
+                    print(f"serial found {emu.SerialNumber}")
+                    # temp_jlink = pylink.JLink()
+                    # jlink.open(serial_no=emu.SerialNumber)
+                    # jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
                     
                     # Create temporary programmer instance to use detect_target
-                    temp_programmer = JLinkProgrammer.__new__(JLinkProgrammer)
-                    temp_programmer._jlink = temp_jlink
-                    temp_programmer.logger = logging.getLogger(__name__)
+                    temp_programmer = JLinkProgrammer(serial=emu.SerialNumber)
+                    detected = temp_programmer.connect_target()
+                    # temp_programmer._jlink = jlink
+                    # temp_programmer.logger = logging.getLogger(__name__)
                     
-                    detected = temp_programmer.detect_target()
+                    # detected = temp_programmer.detect_target()
                     if detected:
+                        print(f"Detected target for JLink S/N {emu.SerialNumber}: {detected}")
                         device_info['target'] = detected
                     
-                    temp_jlink.close()
+                    # jlink.close()
                 except Exception:
                     # If detection fails, just skip it
                     pass
