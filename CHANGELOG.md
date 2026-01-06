@@ -21,9 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Strict validation restored: exactly 3 STM32F103RE devices required at specified IPs
 
 ### Changed
-- Network scanning performance: now sequential with lock protection instead of fully parallel
+- Network scanning: target detection is now serialized with lock protection
   - Port checks remain parallel for speed
-  - Target detection is serialized for reliability
+  - Target MCU detection runs sequentially to prevent pylink state conflicts
 
 ## [0.1.6] - 2026-01-04
 
