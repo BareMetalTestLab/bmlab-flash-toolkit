@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-01-06
+
+### Fixed
+- **Network scanning now correctly detects target MCU for all devices**:
+  - Added thread lock (`threading.Lock`) to serialize JLink connections during parallel scanning
+  - Prevents state conflicts in pylink library when multiple threads connect simultaneously
+  - Previously parallel scans could incorrectly detect STM32F765ZG instead of actual STM32F103RE
+  - Added 500ms delay after disconnect to ensure device is fully released
+- **CI workflow improvements**:
+  - Removed excessive debug output from test steps
+  - Simplified Docker container setup and cleanup
+  - Fixed validation logic: removed redundant device counting, only validate target MCU and IPs
+  - Added network cleanup before creation to prevent "pool overlaps" errors
+  - Strict validation restored: exactly 3 STM32F103RE devices required at specified IPs
+
+### Changed
+- Network scanning performance: now sequential with lock protection instead of fully parallel
+  - Port checks remain parallel for speed
+  - Target detection is serialized for reliability
+
 ## [0.1.4] - 2025-12-14
 
 ### Changed
