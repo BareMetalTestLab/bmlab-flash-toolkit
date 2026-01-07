@@ -150,10 +150,19 @@ def flash_devices(serial, ip_list, fw_file, mcu, programmer_type, log_level):
     
     # Print header
     if len(devices) == 1:
-        device_str = devices[0]['ip'] or f"serial {devices[0]['serial']}" or "auto-detected"
+        device_str = devices[0]['ip'] or (f"serial {devices[0]['serial']}" if devices[0]['serial'] is not None else "auto-detected")
         print(f"Flashing {device_str}")
     else:
-        print(f"Flashing {len(devices)} device(s) in parallel: {', '.join(d['ip'] for d in devices)}")
+        # Show all device identifiers (ip or serial)
+        device_names = []
+        for d in devices:
+            if d['ip']:
+                device_names.append(str(d['ip']))
+            elif d['serial'] is not None:
+                device_names.append(f"serial {d['serial']}")
+            else:
+                device_names.append("auto-detected")
+        print(f"Flashing {len(devices)} device(s) in parallel: {', '.join(device_names)}")
     print(f"Firmware: {fw_file}\n")
     
     results = []
