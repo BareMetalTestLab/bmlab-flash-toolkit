@@ -49,3 +49,4 @@ Thumbs.db
 *.bin
 *.elf
 !fw.bin
+!fw.hex
