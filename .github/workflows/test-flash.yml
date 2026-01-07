@@ -68,6 +68,18 @@ jobs:
             exit 1
           fi
 
+      - name: Test 2.1 — Flash without mcu (auto-detect target)
+        run: |
+          . .venv/bin/activate
+          serial=$(sed -n '1p' serials.txt)
+          bmlab-flash .github/workflows/fw.hex --serial $serial | tee flash-serial2.txt
+          
+          if ! grep -q "Success" flash-serial2.txt; then
+            echo "Test 2.1 failed: flash not successful"
+            cat flash-serial2.txt
+            exit 1
+          fi
+
       - name: Test 3 — Flash multiple by serial
         run: |
           . .venv/bin/activate
