@@ -3,7 +3,7 @@ import os
 import time
 import argparse
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from .constants import SUPPORTED_PROGRAMMERS, DEFAULT_PROGRAMMER, PROGRAMMER_JLINK
 from .programmer import Programmer
@@ -153,7 +153,7 @@ def flash_devices(serial, ip_list, fw_file, mcu, programmer_type, log_level):
     print(f"Firmware: {fw_file}\n")
     
     results = []
-    with ThreadPoolExecutor(max_workers=len(devices)) as executor:
+    with ProcessPoolExecutor(max_workers=len(devices)) as executor:
         # Submit all flash tasks
         future_to_device = {
             executor.submit(flash_device_task, dev['serial'], dev['ip'], fw_file, mcu, programmer_type, log_level): dev
