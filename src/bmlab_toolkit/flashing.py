@@ -148,46 +148,49 @@ def flash_devices(serial, ip_list, fw_file, mcu, programmer_type, log_level):
     else:
         devices = [{'serial': serial, 'ip': None}]
     
-    # Print header
-    if len(devices) == 1:
-        device_str = devices[0]['ip'] or (f"serial {devices[0]['serial']}" if devices[0]['serial'] is not None else "auto-detected")
-        print(f"Flashing {device_str}")
-    else:
-        # Show all device identifiers (ip or serial)
-        device_names = []
-        for d in devices:
-            if d['ip']:
-                device_names.append(str(d['ip']))
-            elif d['serial'] is not None:
-                device_names.append(f"serial {d['serial']}")
-            else:
-                device_names.append("auto-detected")
-        print(f"Flashing {len(devices)} device(s) in parallel: {', '.join(device_names)}")
+    # Print device list
+    device_names = []
+    for d in devices:
+        if d['ip']:
+            device_names.append(str(d['ip']))
+        elif d['serial'] is not None:
+            device_names.append(f"serial {d['serial']}")
+        else:
+            device_names.append("auto-detected")
+    print(f"Flashing {len(devices)} device(s): {', '.join(device_names)}")
     print(f"Firmware: {fw_file}\n")
     
     results = []
-    with ProcessPoolExecutor(max_workers=len(devices)) as executor:
-        # Submit all flash tasks
-        future_to_device = {
-            executor.submit(flash_device_task, dev['serial'], dev['ip'], fw_file, mcu, programmer_type, log_level): dev
-            for dev in devices
-        }
-        
-        # Process results as they complete
-        for future in as_completed(future_to_device):
-            dev = future_to_device[future]
-            try:
-                result = future.result(timeout=300)  # 5 min timeout per device
-                results.append(result)
-                
-                if result['success']:
-                    print(f"✓ {result['device']}: Success")
-                else:
-                    print(f"✗ {result['device']}: {result['error']}")
-            except Exception as e:
-                device_id = dev['ip'] or dev['serial']
-                results.append({'device': device_id, 'success': False, 'error': str(e)})
-                print(f"✗ {device_id}: {e}")
+    if ip_list:
+        # Parallel flashing for IPs
+        from concurrent.futures import ProcessPoolExecutor, as_completed
+        with ProcessPoolExecutor(max_workers=len(devices)) as executor:
+            future_to_device = {
+                executor.submit(flash_device_task, dev['serial'], dev['ip'], fw_file, mcu, programmer_type, log_level): dev
+                for dev in devices
+            }
+            for future in as_completed(future_to_device):
+                dev = future_to_device[future]
+                try:
+                    result = future.result(timeout=300)
+                    results.append(result)
+                    if result['success']:
+                        print(f"✓ {result['device']}: Success")
+                    else:
+                        print(f"✗ {result['device']}: {result['error']}")
+                except Exception as e:
+                    device_id = dev['ip'] or dev['serial']
+                    results.append({'device': device_id, 'success': False, 'error': str(e)})
+                    print(f"✗ {device_id}: {e}")
+    else:
+        # Sequential flashing for serials
+        for dev in devices:
+            result = flash_device_task(dev['serial'], dev['ip'], fw_file, mcu, programmer_type, log_level)
+            results.append(result)
+            if result['success']:
+                print(f"✓ {result['device']}: Success")
+            else:
+                print(f"✗ {result['device']}: {result['error']}")
     
     # Summary
     success_count = sum(1 for r in results if r['success'])
