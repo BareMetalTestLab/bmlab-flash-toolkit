@@ -1,0 +1,163 @@
+name: Test Flash
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  VNET_BASE: 192.168.3
+  VNET_MASK: 24
+
+jobs:
+  test-flash:
+    runs-on: self-hosted
+
+    steps:
+      - name: Cleanup before start
+        if: always()
+        run: |
+          pkill -9 -f JLinkRemoteServer || true
+          docker rm -f jlink100 jlink101 jlink102 2>/dev/null || true
+          docker network rm jlink-net 2>/dev/null || true
+          sleep 2
+
+      - uses: actions/checkout@v4
+
+      - name: Install package
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -e ".[dev]"
+
+      - name: Detect devices and save serials
+        run: |
+          . .venv/bin/activate
+          bmlab-scan | tee scan.txt
+          count=$(grep -c "Target:  *STM32F103RE" scan.txt)
+          awk '/JLink Programmer/ {serial=""} /Serial:/ {serial=$2} /Target: *STM32F103RE/ && serial {print serial}' scan.txt | sort | uniq > serials.txt
+          
+          if [ "$count" -ne 3 ]; then
+            echo "Test failed: expected 3 STM32F103RE, found $count"
+            cat scan.txt
+            exit 1
+          fi
+
+      - name: Build JLinkRemoteServer Docker image
+        run: |
+          docker build -t my-jlink-image -f .github/workflows/jlinkRemoteServerEmu.dockerfile .
+
+      - name: Setup JLinkRemoteServer Docker containers
+        run: |
+          docker network rm jlink-net 2>/dev/null || true
+          docker network create --driver bridge --subnet=$VNET_BASE.0/$VNET_MASK --gateway=$VNET_BASE.1 jlink-net
+          
+          serial1=$(sed -n '1p' serials.txt)
+          serial2=$(sed -n '2p' serials.txt)
+          serial3=$(sed -n '3p' serials.txt)
+          
+          docker run -d --rm \
+            --device=/dev/bus/usb:/dev/bus/usb \
+            --name jlink100 \
+            --network jlink-net \
+            --ip $VNET_BASE.100 \
+            my-jlink-image \
+            -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd
+          sleep 3
+          
+          docker run -d --rm \
+            --device=/dev/bus/usb:/dev/bus/usb \
+            --name jlink101 \
+            --network jlink-net \
+            --ip $VNET_BASE.101 \
+            my-jlink-image \
+            -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd
+          sleep 3
+          
+          docker run -d --rm \
+            --device=/dev/bus/usb:/dev/bus/usb \
+            --name jlink102 \
+            --network jlink-net \
+            --ip $VNET_BASE.102 \
+            my-jlink-image \
+            -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
+          sleep 3
+
+      - name: Verify network devices are available
+        run: |
+          . .venv/bin/activate
+          bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan-network.txt
+          
+          f103_count=$(grep -c "Target:.*STM32F103RE" scan-network.txt || echo 0)
+          
+          if [ "$f103_count" -ne 3 ]; then
+            echo "Expected 3 STM32F103RE devices, found $f103_count"
+            cat scan-network.txt
+            exit 1
+          fi
+
+      - name: Test 1 — Flash single device by IP
+        run: |
+          . .venv/bin/activate
+          bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 --mcu STM32F103RE | tee flash1.txt
+          
+          if ! grep -q "Success" flash1.txt; then
+            echo "Test 1 failed: flash not successful"
+            cat flash1.txt
+            exit 1
+          fi
+
+      - name: Test 2 — Flash two devices in parallel
+        run: |
+          . .venv/bin/activate
+          bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 --mcu STM32F103RE | tee flash2.txt
+          
+          success_count=$(grep -c "Success" flash2.txt || echo 0)
+          
+          if [ "$success_count" -ne 2 ]; then
+            echo "Test 2 failed: expected 2 successful flashes, found $success_count"
+            cat flash2.txt
+            exit 1
+          fi
+          
+          if ! grep -q "$VNET_BASE.100" flash2.txt; then
+            echo "Test 2 failed: no result for $VNET_BASE.100"
+            cat flash2.txt
+            exit 1
+          fi
+          
+          if ! grep -q "$VNET_BASE.101" flash2.txt; then
+            echo "Test 2 failed: no result for $VNET_BASE.101"
+            cat flash2.txt
+            exit 1
+          fi
+
+      - name: Test 3 — Flash three devices in parallel
+        run: |
+          . .venv/bin/activate
+          bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee flash3.txt
+          
+          success_count=$(grep -c "Success" flash3.txt || echo 0)
+          
+          if [ "$success_count" -ne 3 ]; then
+            echo "Test 3 failed: expected 3 successful flashes, found $success_count"
+            cat flash3.txt
+            exit 1
+          fi
+          
+          for ip in 100 101 102; do
+            if ! grep -q "$VNET_BASE\.$ip" flash3.txt; then
+              echo "Test 3 failed: no result for $VNET_BASE.$ip"
+              cat flash3.txt
+              exit 1
+            fi
+          done
+
+      - name: Cleanup after tests
+        if: always()
+        run: |
+          docker rm -f jlink100 jlink101 jlink102 || true
+          docker network rm jlink-net || true
+          pkill -9 -f JLinkRemoteServer || true
+          sleep 2
