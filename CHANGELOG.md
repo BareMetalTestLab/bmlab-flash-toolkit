@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-01-07
+
+### Added
+- **Parallel device flashing** - Multiple devices can now be flashed simultaneously
+  - `--ip` parameter now accepts multiple IP addresses for parallel network flashing
+  - `--serial` parameter now accepts multiple serial numbers for sequential USB flashing
+  - Uses `ProcessPoolExecutor` for true parallel execution (separate processes per device)
+  - Each device gets isolated pylink state, preventing conflicts
+  - Real-time progress reporting with ✓/✗ indicators per device
+  - Summary report showing success/failure counts
+  - Example: `bmlab-flash firmware.bin --ip 192.168.1.100 192.168.1.101 192.168.1.102`
+  - Example: `bmlab-flash firmware.bin --serial 123456 789012 345678`
+
+### Changed
+- **Smart execution strategy based on connection type**:
+  - Network devices (--ip): Parallel flashing using ProcessPoolExecutor
+  - USB devices (--serial): Sequential flashing to avoid USB driver conflicts
+  - Auto-detection still works for single device scenarios
+- **Unified device output format** - Same format for single or multiple devices
+- Added 500ms delay after each flash operation for proper device release
+
+### Added (Testing)
+- New CI workflow `test-flash.yml` for testing parallel flashing functionality
+- Tests for single device flashing (USB serial and network IP)
+- Tests for multiple device flashing (2 and 3 devices in parallel)
+- Tests for auto-detection and MCU parameter handling
+
 ## [0.1.7] - 2026-01-06
 
 ### Fixed

@@ -1,4 +1,4 @@
-name: Test Builds
+name: Test Scan
 
 on:
   push:
@@ -9,8 +9,9 @@ on:
 env:
   VNET_BASE: 192.168.3
   VNET_MASK: 24
+  
 jobs:
-  test-build:
+  test-scan:
     runs-on: self-hosted
 
     steps:
