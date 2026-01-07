@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 import argparse
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -123,6 +124,9 @@ def flash_device_task(serial, ip_addr, fw_file, mcu, programmer_type, log_level)
         if not prog.flash(fw_file, mcu=mcu):
             device_id = ip_addr or serial
             return {'device': device_id, 'success': False, 'error': 'Flash operation failed'}
+        
+        # Small delay to ensure device is properly released
+        time.sleep(0.5)
         
         device_id = ip_addr or serial
         return {'device': device_id, 'success': True, 'error': None}
