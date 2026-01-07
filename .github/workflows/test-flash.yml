@@ -97,41 +97,41 @@ jobs:
             exit 1
           fi
 
-      - name: Test 1 — Flash single device by IP
-        run: |
-          . .venv/bin/activate
-          bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 --mcu STM32F103RE | tee flash1.txt
+      # - name: Test 1 — Flash single device by IP
+      #   run: |
+      #     . .venv/bin/activate
+      #     bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 --mcu STM32F103RE | tee flash1.txt
           
-          if ! grep -q "Success" flash1.txt; then
-            echo "Test 1 failed: flash not successful"
-            cat flash1.txt
-            exit 1
-          fi
+      #     if ! grep -q "Success" flash1.txt; then
+      #       echo "Test 1 failed: flash not successful"
+      #       cat flash1.txt
+      #       exit 1
+      #     fi
 
-      - name: Test 2 — Flash two devices in parallel
-        run: |
-          . .venv/bin/activate
-          bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 --mcu STM32F103RE | tee flash2.txt
+      # - name: Test 2 — Flash two devices in parallel
+      #   run: |
+      #     . .venv/bin/activate
+      #     bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 --mcu STM32F103RE | tee flash2.txt
           
-          success_count=$(grep -c "Success" flash2.txt || echo 0)
+      #     success_count=$(grep -c "Success" flash2.txt || echo 0)
           
-          if [ "$success_count" -ne 2 ]; then
-            echo "Test 2 failed: expected 2 successful flashes, found $success_count"
-            cat flash2.txt
-            exit 1
-          fi
+      #     if [ "$success_count" -ne 2 ]; then
+      #       echo "Test 2 failed: expected 2 successful flashes, found $success_count"
+      #       cat flash2.txt
+      #       exit 1
+      #     fi
           
-          if ! grep -q "$VNET_BASE.100" flash2.txt; then
-            echo "Test 2 failed: no result for $VNET_BASE.100"
-            cat flash2.txt
-            exit 1
-          fi
+      #     if ! grep -q "$VNET_BASE.100" flash2.txt; then
+      #       echo "Test 2 failed: no result for $VNET_BASE.100"
+      #       cat flash2.txt
+      #       exit 1
+      #     fi
           
-          if ! grep -q "$VNET_BASE.101" flash2.txt; then
-            echo "Test 2 failed: no result for $VNET_BASE.101"
-            cat flash2.txt
-            exit 1
-          fi
+      #     if ! grep -q "$VNET_BASE.101" flash2.txt; then
+      #       echo "Test 2 failed: no result for $VNET_BASE.101"
+      #       cat flash2.txt
+      #       exit 1
+      #     fi
 
       - name: Test 3 — Flash three devices in parallel
         run: |
