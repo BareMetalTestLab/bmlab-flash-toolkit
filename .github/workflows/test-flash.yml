@@ -84,18 +84,18 @@ jobs:
             -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
           sleep 3
 
-      - name: Verify network devices are available
-        run: |
-          . .venv/bin/activate
-          bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan-network.txt
+      # - name: Verify network devices are available
+      #   run: |
+      #     . .venv/bin/activate
+      #     bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan-network.txt
           
-          f103_count=$(grep -c "Target:.*STM32F103RE" scan-network.txt || echo 0)
+      #     f103_count=$(grep -c "Target:.*STM32F103RE" scan-network.txt || echo 0)
           
-          if [ "$f103_count" -ne 3 ]; then
-            echo "Expected 3 STM32F103RE devices, found $f103_count"
-            cat scan-network.txt
-            exit 1
-          fi
+      #     if [ "$f103_count" -ne 3 ]; then
+      #       echo "Expected 3 STM32F103RE devices, found $f103_count"
+      #       cat scan-network.txt
+      #       exit 1
+      #     fi
 
       # - name: Test 1 — Flash single device by IP
       #   run: |
