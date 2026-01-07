@@ -49,8 +49,9 @@ Examples:
     parser.add_argument(
         "--serial", "-s",
         type=int,
+        nargs='+',
         default=None,
-        help="Programmer serial number (optional, will use first available if not specified)"
+        help="Programmer serial number(s) (can specify multiple for parallel flashing, or leave empty for auto-detect)"
     )
     
     parser.add_argument(
@@ -90,23 +91,24 @@ Examples:
     if args.serial and args.ip:
         print("Error: Cannot specify both --serial and --ip")
         sys.exit(1)
-    
+
     # Check firmware file exists
     fw_file = os.path.abspath(args.firmware_file)
     if not os.path.exists(fw_file):
         print(f"Error: Firmware file not found: {fw_file}")
         print(f"To list connected devices, run: bmlab-scan")
         sys.exit(1)
-    
+
     try:
         # Convert log level string to logging constant
         log_level = getattr(logging, args.log_level.upper())
-        
-        # Handle IP addresses (convert to list for uniform processing)
+
+        # Handle IP addresses and serials (convert to list for uniform processing)
         ip_list = args.ip if args.ip else None
-        
-        flash_devices(args.serial, ip_list, fw_file, args.mcu, args.programmer, log_level)
-        
+        serial_list = args.serial if args.serial else None
+
+        flash_devices(serial_list, ip_list, fw_file, args.mcu, args.programmer, log_level)
+
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -141,6 +143,8 @@ def flash_devices(serial, ip_list, fw_file, mcu, programmer_type, log_level):
     devices = []
     if ip_list:
         devices = [{'serial': None, 'ip': ip} for ip in ip_list]
+    elif serial and isinstance(serial, list):
+        devices = [{'serial': s, 'ip': None} for s in serial]
     else:
         devices = [{'serial': serial, 'ip': None}]
     
