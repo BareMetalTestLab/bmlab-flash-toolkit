@@ -123,6 +123,7 @@ class JLinkProgrammer(Programmer):
         finally:
             # Disconnect after flashing
             try:
+                time.sleep(1)
                 self.disconnect_target()
             except Exception as e:
                 self.logger.warning(f"Disconnect error: {e}")

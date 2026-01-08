@@ -1,4 +1,4 @@
-name: Test Flash
+name: Test Erase
 
 on:
   push:
@@ -11,7 +11,7 @@ env:
   VNET_MASK: 24
 
 jobs:
-  test-flash:
+  test-erase:
     runs-on: self-hosted
 
     steps:
@@ -44,54 +44,44 @@ jobs:
             exit 1
           fi
 
-      - name: Test 1 — Flash single device by serial
+      - name: Test 1 — Erase single device by serial
         run: |
           . .venv/bin/activate
           serial=$(sed -n '1p' serials.txt)
-          bmlab-flash .github/workflows/fw.bin --serial $serial --mcu STM32F103RE | tee flash-serial1.txt
+          bmlab-erase --serial $serial --mcu STM32F103RE | tee erase-serial1.txt
           
-          if ! grep -q "Success" flash-serial1.txt; then
-            echo "Test 1 failed: flash not successful"
-            cat flash-serial1.txt
+          if ! grep -q "Success" erase-serial1.txt; then
+            echo "Test 1 failed: erase not successful"
+            cat erase-serial1.txt
             exit 1
           fi
 
-      - name: Test 2 — Flash without mcu (auto-detect target)
+      - name: Test 2 — Erase without mcu (auto-detect target)
         run: |
           . .venv/bin/activate
           serial=$(sed -n '1p' serials.txt)
-          bmlab-flash .github/workflows/fw.bin --serial $serial | tee flash-serial2.txt
+          bmlab-erase --serial $serial | tee erase-serial2.txt
           
-          if ! grep -q "Success" flash-serial2.txt; then
-            echo "Test 2 failed: flash not successful"
-            cat flash-serial2.txt
+          if ! grep -q "Success" erase-serial2.txt; then
+            echo "Test 2 failed: erase not successful"
+            cat erase-serial2.txt
             exit 1
           fi
 
-      - name: Test 2.1 — Flash without mcu (auto-detect target)
-        run: |
-          . .venv/bin/activate
-          serial=$(sed -n '1p' serials.txt)
-          bmlab-flash .github/workflows/fw.hex --serial $serial | tee flash-serial2.txt
-          
-          if ! grep -q "Success" flash-serial2.txt; then
-            echo "Test 2.1 failed: flash not successful"
-            cat flash-serial2.txt
-            exit 1
-          fi
-
-      - name: Test 3 — Flash multiple by serial
+      - name: Test 3 — Erase multiple by serial
         run: |
           . .venv/bin/activate
           serial1=$(sed -n '1p' serials.txt)
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
           
-          bmlab-flash .github/workflows/fw.bin --serial $serial1 $serial2 $serial3 --mcu STM32F103RE | tee flash-serial3.txt
+          bmlab-erase --serial $serial1 $serial2 $serial3 --mcu STM32F103RE | tee erase-serial3.txt
           
-          if ! grep -q "Success" flash-serial3.txt; then
-            echo "Test 3 failed: flash not successful"
-            cat flash-serial3.txt
+          success_count=$(grep -c "Success" erase-serial3.txt || echo 0)
+          
+          if [ "$success_count" -ne 3 ]; then
+            echo "Test 3 failed: expected 3 successful erases, found $success_count"
+            cat erase-serial3.txt
             exit 1
           fi
 
@@ -102,36 +92,34 @@ jobs:
           vnet-base: ${{ env.VNET_BASE }}
           vnet-mask: ${{ env.VNET_MASK }}
 
-      - name: Test 3.1 — Erase three devices before flashing
+      - name: Test 4 — Erase single device by IP
         run: |
           . .venv/bin/activate
-          bmlab-erase --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee erase-before-flash.txt
+          bmlab-erase --ip $VNET_BASE.100 --mcu STM32F103RE | tee erase-ip1.txt
           
-          success_count=$(grep -c "Success" erase-before-flash.txt || echo 0)
-          
-          if [ "$success_count" -ne 3 ]; then
-            echo "Test 3.1 failed: expected 3 successful erases, found $success_count"
-            cat erase-before-flash.txt
+          if ! grep -q "Success" erase-ip1.txt; then
+            echo "Test 4 failed: erase not successful"
+            cat erase-ip1.txt
             exit 1
           fi
 
-      - name: Test 4 — Flash three devices in parallel
+      - name: Test 5 — Erase three devices in parallel by IP
         run: |
           . .venv/bin/activate
-          bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee flash4.txt
+          bmlab-erase --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee erase-ip3.txt
           
-          success_count=$(grep -c "Success" flash4.txt || echo 0)
+          success_count=$(grep -c "Success" erase-ip3.txt || echo 0)
           
           if [ "$success_count" -ne 3 ]; then
-            echo "Test 4 failed: expected 3 successful flashes, found $success_count"
-            cat flash4.txt
+            echo "Test 5 failed: expected 3 successful erases, found $success_count"
+            cat erase-ip3.txt
             exit 1
           fi
           
           for ip in 100 101 102; do
-            if ! grep -q "$VNET_BASE\.$ip" flash4.txt; then
-              echo "Test 4 failed: no result for $VNET_BASE.$ip"
-              cat flash4.txt
+            if ! grep -q "$VNET_BASE\.$ip" erase-ip3.txt; then
+              echo "Test 5 failed: no result for $VNET_BASE.$ip"
+              cat erase-ip3.txt
               exit 1
             fi
           done

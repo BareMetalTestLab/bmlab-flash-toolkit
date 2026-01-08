@@ -1,0 +1,57 @@
+name: 'Setup JLink Network'
+description: 'Build Docker image and setup JLink RemoteServer containers'
+inputs:
+  serials-file:
+    description: 'Path to file with serial numbers (one per line)'
+    required: true
+  vnet-base:
+    description: 'Base IP address for virtual network (e.g., 192.168.3)'
+    required: true
+  vnet-mask:
+    description: 'Network mask (e.g., 24)'
+    required: true
+    default: '24'
+runs:
+  using: 'composite'
+  steps:
+    - name: Build JLinkRemoteServer Docker image
+      shell: bash
+      run: |
+        docker build -t my-jlink-image -f .github/workflows/jlinkRemoteServerEmu.dockerfile .
+
+    - name: Setup JLinkRemoteServer Docker containers
+      shell: bash
+      run: |
+        docker network rm jlink-net 2>/dev/null || true
+        docker network create --driver bridge --subnet=${{ inputs.vnet-base }}.0/${{ inputs.vnet-mask }} --gateway=${{ inputs.vnet-base }}.1 jlink-net
+        
+        serial1=$(sed -n '1p' ${{ inputs.serials-file }})
+        serial2=$(sed -n '2p' ${{ inputs.serials-file }})
+        serial3=$(sed -n '3p' ${{ inputs.serials-file }})
+        
+        docker run -d --rm \
+          --device=/dev/bus/usb:/dev/bus/usb \
+          --name jlink100 \
+          --network jlink-net \
+          --ip ${{ inputs.vnet-base }}.100 \
+          my-jlink-image \
+          -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd
+        sleep 3
+        
+        docker run -d --rm \
+          --device=/dev/bus/usb:/dev/bus/usb \
+          --name jlink101 \
+          --network jlink-net \
+          --ip ${{ inputs.vnet-base }}.101 \
+          my-jlink-image \
+          -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd
+        sleep 3
+        
+        docker run -d --rm \
+          --device=/dev/bus/usb:/dev/bus/usb \
+          --name jlink102 \
+          --network jlink-net \
+          --ip ${{ inputs.vnet-base }}.102 \
+          my-jlink-image \
+          -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
+        sleep 3
