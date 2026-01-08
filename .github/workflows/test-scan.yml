@@ -79,51 +79,13 @@ jobs:
           ! bmlab-scan --network 127.0.0.2/32 | tee scan5.txt | grep -q "STM32F103RE"
           grep -qi "No JLink Remote Servers found on the network." scan5.txt
 
-      - name: Build JLinkRemoteServer Docker image
-        run: |
-          docker build -t my-jlink-image -f .github/workflows/jlinkRemoteServerEmu.dockerfile .
+      - name: Setup JLink network containers
+        uses: ./.github/actions/setup-jlink-network
+        with:
+          serials-file: serials.txt
+          vnet-base: ${{ env.VNET_BASE }}
+          vnet-mask: ${{ env.VNET_MASK }}
 
-      - name: Cleanup jlink-net Docker network
-        run: |
-          docker rm -f jlink100 jlink101 jlink102 2>/dev/null || true
-          docker network rm jlink-net 2>/dev/null || true
-
-      - name: Setup JLinkRemoteServer Docker containers
-        run: |
-          docker network rm jlink-net 2>/dev/null || true
-          docker network create --driver bridge --subnet=$VNET_BASE.0/$VNET_MASK --gateway=$VNET_BASE.1 jlink-net
-          
-          serial1=$(sed -n '1p' serials.txt)
-          serial2=$(sed -n '2p' serials.txt)
-          serial3=$(sed -n '3p' serials.txt)
-          
-          docker run -d --rm \
-            --device=/dev/bus/usb:/dev/bus/usb \
-            --name jlink100 \
-            --network jlink-net \
-            --ip $VNET_BASE.100 \
-            my-jlink-image \
-            -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd
-          sleep 3
-          
-          docker run -d --rm \
-            --device=/dev/bus/usb:/dev/bus/usb \
-            --name jlink101 \
-            --network jlink-net \
-            --ip $VNET_BASE.101 \
-            my-jlink-image \
-            -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd
-          sleep 3
-          
-          docker run -d --rm \
-            --device=/dev/bus/usb:/dev/bus/usb \
-            --name jlink102 \
-            --network jlink-net \
-            --ip $VNET_BASE.102 \
-            my-jlink-image \
-            -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
-          sleep 3
-          
       - name: Test 6 — Multiple RemoteServers network scan
         run: |
           . .venv/bin/activate
