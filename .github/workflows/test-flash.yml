@@ -102,6 +102,19 @@ jobs:
           vnet-base: ${{ env.VNET_BASE }}
           vnet-mask: ${{ env.VNET_MASK }}
 
+      - name: Test 3.1 — Erase three devices before flashing
+        run: |
+          . .venv/bin/activate
+          bmlab-erase --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee erase-before-flash.txt
+          
+          success_count=$(grep -c "Success" erase-before-flash.txt || echo 0)
+          
+          if [ "$success_count" -ne 3 ]; then
+            echo "Test 3.1 failed: expected 3 successful erases, found $success_count"
+            cat erase-before-flash.txt
+            exit 1
+          fi
+
       - name: Test 4 — Flash three devices in parallel
         run: |
           . .venv/bin/activate
