@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2026-01-10
+
+### Added
+- **Parallel RTT monitoring** - Multiple devices can now be monitored simultaneously via RTT
+  - `--ip` parameter accepts multiple IP addresses for parallel network RTT reading
+  - `--serial` parameter accepts multiple serial numbers for sequential USB RTT reading
+  - Uses `ProcessPoolExecutor` for true parallel execution (avoiding pylink thread-safety issues)
+  - `--output-dir` parameter required for multiple devices, logs saved per device
+  - Log files named by device: `rtt_192_168_3_100.log` or `rtt_serial_123456.log`
+  - Single device mode outputs to terminal (no `--output-dir` needed)
+  - Example: `bmlab-rtt --ip 192.168.1.100 192.168.1.101 --output-dir logs --timeout 60`
+  - Example: `bmlab-rtt --serial 123456 789012 --mcu STM32F103RE --output-dir logs --timeout 30`
+
 ## [0.1.8] - 2026-01-07
 
 ### Added
