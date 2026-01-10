@@ -1,0 +1,150 @@
+name: Test RTT
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  VNET_BASE: 192.168.3
+  VNET_MASK: 24
+
+jobs:
+  test-rtt:
+    runs-on: self-hosted
+
+    steps:
+      - name: Cleanup before start
+        if: always()
+        run: |
+          pkill -9 -f JLinkRemoteServer || true
+          docker rm -f jlink100 jlink101 jlink102 2>/dev/null || true
+          docker network rm jlink-net 2>/dev/null || true
+          sleep 2
+
+      - uses: actions/checkout@v4
+
+      - name: Install package
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -e ".[dev]"
+
+      - name: Detect devices and save serials
+        run: |
+          . .venv/bin/activate
+          bmlab-scan | tee scan.txt
+          count=$(grep -c "Target:  *STM32F103RE" scan.txt)
+          awk '/JLink Programmer/ {serial=""} /Serial:/ {serial=$2} /Target: *STM32F103RE/ && serial {print serial}' scan.txt | sort | uniq > serials.txt
+          
+          if [ "$count" -ne 3 ]; then
+            echo "Test failed: expected 3 STM32F103RE, found $count"
+            cat scan.txt
+            exit 1
+          fi
+
+      - name: Flash firmware to all devices
+        run: |
+          . .venv/bin/activate
+          serial1=$(sed -n '1p' serials.txt)
+          serial2=$(sed -n '2p' serials.txt)
+          serial3=$(sed -n '3p' serials.txt)
+          
+          bmlab-flash .github/workflows/fw.bin --serial $serial1 $serial2 $serial3 --mcu STM32F103RE
+
+      - name: Test 1 — RTT single device by serial
+        run: |
+          . .venv/bin/activate
+          serial=$(sed -n '1p' serials.txt)
+          timeout 5 bmlab-rtt --serial $serial --timeout 3 | tee rtt-serial1.txt || true
+          
+          if [ ! -s rtt-serial1.txt ]; then
+            echo "Test 1 failed: no RTT output"
+            exit 1
+          fi
+
+      - name: Test 2 — RTT auto-detect device
+        run: |
+          . .venv/bin/activate
+          timeout 5 bmlab-rtt --timeout 3 | tee rtt-auto.txt || true
+          
+          if [ ! -s rtt-auto.txt ]; then
+            echo "Test 2 failed: no RTT output"
+            exit 1
+          fi
+
+      - name: Test 3 — RTT multiple devices by serial
+        run: |
+          . .venv/bin/activate
+          serial1=$(sed -n '1p' serials.txt)
+          serial2=$(sed -n '2p' serials.txt)
+          serial3=$(sed -n '3p' serials.txt)
+          
+          mkdir -p rtt_logs_serial
+          timeout 10 bmlab-rtt --serial $serial1 $serial2 $serial3 --output-dir rtt_logs_serial --timeout 3 || true
+          
+          # Check that log files were created
+          for s in $serial1 $serial2 $serial3; do
+            logfile="rtt_logs_serial/rtt_serial_${s}.log"
+            if [ ! -f "$logfile" ]; then
+              echo "Test 3 failed: log file not found: $logfile"
+              ls -la rtt_logs_serial/
+              exit 1
+            fi
+          done
+
+      - name: Setup JLink network containers
+        uses: ./.github/actions/setup-jlink-network
+        with:
+          serials-file: serials.txt
+          vnet-base: ${{ env.VNET_BASE }}
+          vnet-mask: ${{ env.VNET_MASK }}
+
+      - name: Flash firmware to network devices
+        run: |
+          . .venv/bin/activate
+          bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE
+
+      - name: Test 4 — RTT single device by IP
+        run: |
+          . .venv/bin/activate
+          timeout 5 bmlab-rtt --ip $VNET_BASE.100 --timeout 3 | tee rtt-ip1.txt || true
+          
+          if [ ! -s rtt-ip1.txt ]; then
+            echo "Test 4 failed: no RTT output"
+            cat rtt-ip1.txt
+            exit 1
+          fi
+
+      - name: Test 5 — RTT multiple devices by IP (parallel)
+        run: |
+          . .venv/bin/activate
+          mkdir -p rtt_logs_ip
+          timeout 10 bmlab-rtt --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --output-dir rtt_logs_ip --timeout 3 || true
+          
+          # Check that log files were created for each IP
+          for ip in 100 101 102; do
+            logfile="rtt_logs_ip/rtt_${VNET_BASE}_${ip}.log"
+            if [ ! -f "$logfile" ]; then
+              echo "Test 5 failed: log file not found: $logfile"
+              ls -la rtt_logs_ip/
+              exit 1
+            fi
+            
+            # Check that file has content
+            if [ ! -s "$logfile" ]; then
+              echo "Test 5 warning: log file is empty: $logfile"
+            fi
+          done
+          
+          echo "Test 5 passed: all log files created"
+          ls -lh rtt_logs_ip/
+
+      - name: Cleanup after tests
+        if: always()
+        run: |
+          docker rm -f jlink100 jlink101 jlink102 || true
+          docker network rm jlink-net || true
+          pkill -9 -f JLinkRemoteServer || true
+          sleep 2
