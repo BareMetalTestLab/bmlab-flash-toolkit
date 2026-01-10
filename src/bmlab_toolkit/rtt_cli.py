@@ -9,10 +9,9 @@ import sys
 import time
 import argparse
 import logging
-import threading
 from pathlib import Path
 from typing import Optional
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from .constants import SUPPORTED_PROGRAMMERS, DEFAULT_PROGRAMMER, PROGRAMMER_JLINK
 from .programmer import Programmer
 from .jlink_programmer import JLinkProgrammer
@@ -287,29 +286,38 @@ def rtt_multiple_devices(devices, output_dir, mcu, programmer_type, reset, timeo
     results = []
     
     if has_ip:
-        # Parallel execution for IP devices using threads
-        threads = []
-        
-        for dev in devices:
-            device_id = dev['ip'] or f"serial {dev['serial']}" or "auto"
-            print(f"✓ Started RTT for {device_id}")
-            
-            thread = threading.Thread(
-                target=lambda d=dev: results.append(
-                    rtt_device_task(d, output_dir, mcu, programmer_type, reset, timeout, msg, msg_timeout, msg_retries, log_level)
+        # Parallel execution for IP devices using processes (thread-safe issues with pylink)
+        with ProcessPoolExecutor(max_workers=len(devices)) as executor:
+            futures = [
+                executor.submit(
+                    rtt_device_task,
+                    dev,
+                    output_dir,
+                    mcu,
+                    programmer_type,
+                    reset,
+                    timeout,
+                    msg,
+                    msg_timeout,
+                    msg_retries,
+                    log_level
                 )
-            )
-            thread.start()
-            threads.append(thread)
-        
-        # Wait for all threads to complete
-        try:
-            for thread in threads:
-                thread.join()
-        except KeyboardInterrupt:
-            print("\n\nInterrupted by user. Waiting for threads to finish...")
-            for thread in threads:
-                thread.join(timeout=5)
+                for dev in devices
+            ]
+            
+            for dev in devices:
+                device_id = dev['ip'] or f"serial {dev['serial']}" or "auto"
+                print(f"✓ Started RTT for {device_id}")
+            
+            # Collect results as they complete
+            try:
+                for future in as_completed(futures):
+                    result = future.result()
+                    results.append(result)
+            except KeyboardInterrupt:
+                print("\n\nInterrupted by user. Terminating processes...")
+                executor.shutdown(wait=False, cancel_futures=True)
+                raise
     else:
         # Sequential execution for serial devices (USB driver limitations)
         print("Note: Serial devices are processed sequentially due to USB driver limitations\n")
