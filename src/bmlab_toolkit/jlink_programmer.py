@@ -542,6 +542,7 @@ class JLinkProgrammer(Programmer):
             try:
                 self._jlink.rtt_stop()
                 self._rtt_started = False
+                time.sleep(1)
                 self.logger.info("RTT stopped")
             except Exception as e:
                 self.logger.warning(f"Error stopping RTT: {e}")
