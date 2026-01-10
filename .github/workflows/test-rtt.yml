@@ -100,10 +100,16 @@ jobs:
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
           
+          echo "Testing serials: $serial1 $serial2 $serial3"
+          
           mkdir -p rtt_logs_serial
           # Serial devices are processed sequentially (USB driver limitation)
-          # Total timeout: 3 seconds per device * 3 devices + overhead
-          timeout 15 bmlab-rtt --serial $serial1 $serial2 $serial3 --mcu STM32F103RE --output-dir rtt_logs_serial --timeout 3 || true
+          # Each device: ~3s RTT + ~2s connect/disconnect = ~5s
+          # Total: 3 devices * 5s = 15s + 10s buffer = 25s
+          timeout 25 bmlab-rtt --serial $serial1 $serial2 $serial3 --mcu STM32F103RE --output-dir rtt_logs_serial --timeout 3 || true
+          
+          echo "Checking log files..."
+          ls -lh rtt_logs_serial/
           
           # Check that log files were created
           for s in $serial1 $serial2 $serial3; do

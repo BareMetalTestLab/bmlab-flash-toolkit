@@ -1,6 +1,6 @@
 # bmlab-toolkit
 
-CI/CD toolkit for flashing and testing embedded devices.
+Toolkit for flashing and testing embedded devices.
 
 ## Features
 
