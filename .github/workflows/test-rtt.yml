@@ -12,10 +12,6 @@ on:
       - '.github/actions/setup-jlink-network/**'
       - '.github/workflows/test-rtt.yml'
       - '.github/workflows/fw.*'
-    paths-ignore:
-      - '.github/workflows/test-scan.yml'
-      - '.github/workflows/test-flash.yml'
-      - '.github/workflows/test-erase.yml'
   pull_request:
     paths:
       - 'src/bmlab_toolkit/rtt_cli.py'
@@ -26,10 +22,6 @@ on:
       - '.github/actions/setup-jlink-network/**'
       - '.github/workflows/test-rtt.yml'
       - '.github/workflows/fw.*'
-    paths-ignore:
-      - '.github/workflows/test-scan.yml'
-      - '.github/workflows/test-flash.yml'
-      - '.github/workflows/test-erase.yml'
   workflow_dispatch:
 
 env:
