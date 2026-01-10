@@ -236,7 +236,7 @@ def rtt_single_device(serial, ip_addr, mcu, programmer_type, reset, timeout, msg
         prog.stop_rtt()
         prog.disconnect_target()
         # Give JLink Remote Server time to release connection
-        time.sleep(0.5)
+        time.sleep(5.0)
     
     if not output_file:
         print("\nDone.")
