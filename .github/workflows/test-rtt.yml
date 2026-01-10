@@ -75,7 +75,7 @@ jobs:
         run: |
           . .venv/bin/activate
           serial=$(sed -n '1p' serials.txt)
-          timeout 5 bmlab-rtt --serial $serial --timeout 3 | tee rtt-serial1.txt || true
+          timeout 5 bmlab-rtt --serial $serial --mcu STM32F103RE --timeout 3 | tee rtt-serial1.txt || true
           
           if [ ! -s rtt-serial1.txt ]; then
             echo "Test 1 failed: no RTT output"
@@ -85,7 +85,8 @@ jobs:
       - name: Test 2 — RTT auto-detect device
         run: |
           . .venv/bin/activate
-          timeout 5 bmlab-rtt --timeout 3 | tee rtt-auto.txt || true
+          serial=$(sed -n '1p' serials.txt)
+          timeout 5 bmlab-rtt --serial $serial --timeout 3 | tee rtt-auto.txt || true
           
           if [ ! -s rtt-auto.txt ]; then
             echo "Test 2 failed: no RTT output"
