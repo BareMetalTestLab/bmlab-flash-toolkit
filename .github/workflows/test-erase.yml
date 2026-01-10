@@ -3,7 +3,25 @@ name: Test Erase
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/bmlab_toolkit/erase_cli.py'
+      - 'src/bmlab_toolkit/jlink_programmer.py'
+      - 'src/bmlab_toolkit/programmer.py'
+      - 'src/bmlab_toolkit/constants.py'
+      - 'pyproject.toml'
+      - '.github/actions/setup-jlink-network/**'
+      - '.github/workflows/test-erase.yml'
+      - '.github/workflows/fw.*'
   pull_request:
+    paths:
+      - 'src/bmlab_toolkit/erase_cli.py'
+      - 'src/bmlab_toolkit/jlink_programmer.py'
+      - 'src/bmlab_toolkit/programmer.py'
+      - 'src/bmlab_toolkit/constants.py'
+      - 'pyproject.toml'
+      - '.github/actions/setup-jlink-network/**'
+      - '.github/workflows/test-erase.yml'
+      - '.github/workflows/fw.*'
   workflow_dispatch:
 
 env:
