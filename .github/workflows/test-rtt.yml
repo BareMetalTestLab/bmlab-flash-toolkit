@@ -150,9 +150,13 @@ jobs:
           mkdir -p rtt_logs_ip
           timeout 15 bmlab-rtt --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --output-dir rtt_logs_ip --timeout 3 || true
           
+          echo "Checking log files..."
+          ls -lh rtt_logs_ip/
+          
           # Check that log files were created for each IP
+          # Note: dots in IP are replaced with underscores in filename
           for ip in 100 101 102; do
-            logfile="rtt_logs_ip/rtt_${VNET_BASE}_${ip}.log"
+            logfile="rtt_logs_ip/rtt_${VNET_BASE//./_}_${ip}.log"
             if [ ! -f "$logfile" ]; then
               echo "Test 5 failed: log file not found: $logfile"
               ls -la rtt_logs_ip/
@@ -166,7 +170,6 @@ jobs:
           done
           
           echo "Test 5 passed: all log files created"
-          ls -lh rtt_logs_ip/
 
       - name: Cleanup after tests
         if: always()
