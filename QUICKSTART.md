@@ -99,7 +99,6 @@ prog = JLinkProgrammer(serial=123456789)
 
 try:
     # Connect and start RTT
-    prog._connect_target(mcu="STM32F765ZG")
     prog.start_rtt(delay=1.0)
     
     # Send data

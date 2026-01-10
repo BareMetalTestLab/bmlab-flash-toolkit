@@ -186,9 +186,6 @@ import time
 prog = JLinkProgrammer(serial=123456789)
 
 try:
-    # Connect to target
-    prog._connect_target(mcu="STM32F765ZG")
-    
     # Reset device (optional)
     prog.reset(halt=False)
     time.sleep(0.5)

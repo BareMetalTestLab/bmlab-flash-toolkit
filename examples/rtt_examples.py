@@ -1,5 +1,4 @@
-"""
-RTT Examples
+"""RTT Examples - Python API
 
 Examples of using JLink RTT functionality for real-time communication
 with embedded devices.
@@ -165,12 +164,46 @@ def example_rtt_logging():
         print(f"Error: {e}")
 
 
+def example_rtt_network():
+    """RTT via network connection (JLink Remote Server)."""
+    print("\n" + "="*60)
+    print("Example 5: RTT via Network")
+    print("="*60)
+    
+    # Connect via IP address
+    prog = JLinkProgrammer(ip_addr="192.168.1.100")
+    
+    try:
+        # No need to specify MCU for network connections
+        prog.connect_target()
+        prog.start_rtt(delay=1.0)
+        
+        print("Reading RTT data for 10 seconds...")
+        start = time.time()
+        
+        while time.time() - start < 10.0:
+            data = prog.rtt_read()
+            if data:
+                print(data.decode('utf-8', errors='replace'), end='', flush=True)
+            time.sleep(0.01)
+        
+        prog.stop_rtt()
+        prog.disconnect_target()
+        
+    except Exception as e:
+        print(f"Error: {e}")
+
+
 if __name__ == "__main__":
-    # Run examples
-    # Uncomment the example you want to run
+    print("RTT Examples - Python API")
+    print("="*60)
+    print("Uncomment the example you want to run\n")
     
-    example_basic_rtt()
-    
+    # Uncomment to run examples:
+    # example_basic_rtt()
     # example_rtt_with_message()
     # example_rtt_interactive()
     # example_rtt_logging()
+    # example_rtt_network()
+    
+    print("No example selected. Edit the file to uncomment examples.")

@@ -1,4 +1,4 @@
-"""Example usage of bmlab-toolkit - OOP API."""
+"""Example usage of bmlab-toolkit - Python API."""
 
 from bmlab_toolkit import JLinkProgrammer
 
@@ -37,6 +37,16 @@ def example_flash_no_reset():
     prog.flash(firmware_file, reset=False)
 
 
+def example_flash_via_network():
+    """Example: Flash device via network (JLink Remote Server)."""
+    firmware_file = "path/to/firmware.hex"
+    ip_address = "192.168.1.100"
+    
+    # Connect via IP - no serial needed, MCU auto-detected
+    prog = JLinkProgrammer(ip_addr=ip_address)
+    prog.flash(firmware_file)
+
+
 def example_detect_device():
     """Example: Detect connected MCU device."""
     prog = JLinkProgrammer()
@@ -63,6 +73,15 @@ def example_reset_device():
         prog.reset(halt=False)
 
 
+def example_erase_device():
+    """Example: Erase device flash memory."""
+    prog = JLinkProgrammer(serial=123456)
+    
+    # Erase flash
+    prog.erase(mcu="STM32F103RE")
+    print("Flash erased")
+
+
 def example_read_memory():
     """Example: Read memory from device."""
     prog = JLinkProgrammer()
@@ -77,27 +96,23 @@ def example_read_memory():
             print(f"Memory at 0x08000000: {hex_str}")
         prog.disconnect_target()
 
-
 if __name__ == "__main__":
-    # Uncomment the example you want to run
+    print("bmlab-toolkit Python API Examples")
+    print("="*60)
+    print("Uncomment the example you want to run\n")
     
-    # Simple usage
+    # Uncomment to run examples:
     # example_flash_simple()
-    
-    # With specific serial
     # example_flash_with_serial()
-    
-    # With specific MCU
     # example_flash_with_mcu()
-    
-    # Without reset
     # example_flash_no_reset()
-    
-    # Device detection
+    # example_flash_via_network()
     # example_detect_device()
-    
-    # Custom reset
     # example_reset_device()
+    # example_erase_device()
+    # example_read_memory()
+    
+    print("No example selected. Edit the file to uncomment examples.")
     
     # Advanced: Read memory
     # example_read_memory()
