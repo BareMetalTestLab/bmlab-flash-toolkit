@@ -12,6 +12,10 @@ on:
       - '.github/actions/setup-jlink-network/**'
       - '.github/workflows/test-rtt.yml'
       - '.github/workflows/fw.*'
+    paths-ignore:
+      - '.github/workflows/test-scan.yml'
+      - '.github/workflows/test-flash.yml'
+      - '.github/workflows/test-erase.yml'
   pull_request:
     paths:
       - 'src/bmlab_toolkit/rtt_cli.py'
@@ -22,6 +26,10 @@ on:
       - '.github/actions/setup-jlink-network/**'
       - '.github/workflows/test-rtt.yml'
       - '.github/workflows/fw.*'
+    paths-ignore:
+      - '.github/workflows/test-scan.yml'
+      - '.github/workflows/test-flash.yml'
+      - '.github/workflows/test-erase.yml'
   workflow_dispatch:
 
 env:
@@ -93,7 +101,7 @@ jobs:
             exit 1
           fi
 
-      - name: Test 3 — RTT multiple devices by serial
+      - name: Test 3 — RTT multiple devices by serial (sequential)
         run: |
           . .venv/bin/activate
           serial1=$(sed -n '1p' serials.txt)
@@ -101,7 +109,9 @@ jobs:
           serial3=$(sed -n '3p' serials.txt)
           
           mkdir -p rtt_logs_serial
-          timeout 10 bmlab-rtt --serial $serial1 $serial2 $serial3 --output-dir rtt_logs_serial --timeout 3 || true
+          # Serial devices are processed sequentially (USB driver limitation)
+          # Total timeout: 3 seconds per device * 3 devices + overhead
+          timeout 15 bmlab-rtt --serial $serial1 $serial2 $serial3 --mcu STM32F103RE --output-dir rtt_logs_serial --timeout 3 || true
           
           # Check that log files were created
           for s in $serial1 $serial2 $serial3; do

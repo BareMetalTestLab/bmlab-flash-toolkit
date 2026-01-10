@@ -270,9 +270,12 @@ def rtt_device_task(device, output_dir, mcu, programmer_type, reset, timeout, ms
 
 
 def rtt_multiple_devices(devices, output_dir, mcu, programmer_type, reset, timeout, msg, msg_timeout, msg_retries, log_level):
-    """RTT for multiple devices in parallel."""
+    """RTT for multiple devices - parallel for IPs, sequential for serials."""
     # Create output directory
     Path(output_dir).mkdir(parents=True, exist_ok=True)
+    
+    # Check if we have IP or serial devices
+    has_ip = any(dev['ip'] for dev in devices)
     
     print(f"Starting RTT for {len(devices)} device(s)")
     print(f"Output directory: {output_dir}")
@@ -282,32 +285,49 @@ def rtt_multiple_devices(devices, output_dir, mcu, programmer_type, reset, timeo
         print(f"(Reading for {timeout} seconds)\n")
     
     results = []
-    threads = []
     
-    # Start threads for each device
-    for dev in devices:
-        device_id = dev['ip'] or f"serial {dev['serial']}" or "auto"
-        print(f"✓ Started RTT for {device_id}")
+    if has_ip:
+        # Parallel execution for IP devices using threads
+        threads = []
         
-        thread = threading.Thread(
-            target=lambda d=dev: results.append(
-                rtt_device_task(d, output_dir, mcu, programmer_type, reset, timeout, msg, msg_timeout, msg_retries, log_level)
+        for dev in devices:
+            device_id = dev['ip'] or f"serial {dev['serial']}" or "auto"
+            print(f"✓ Started RTT for {device_id}")
+            
+            thread = threading.Thread(
+                target=lambda d=dev: results.append(
+                    rtt_device_task(d, output_dir, mcu, programmer_type, reset, timeout, msg, msg_timeout, msg_retries, log_level)
+                )
             )
-        )
-        thread.start()
-        threads.append(thread)
-    
-    # Wait for all threads to complete
-    try:
-        for thread in threads:
-            thread.join()
-    except KeyboardInterrupt:
-        print("\n\nInterrupted by user. Waiting for threads to finish...")
-        for thread in threads:
-            thread.join(timeout=5)
+            thread.start()
+            threads.append(thread)
+        
+        # Wait for all threads to complete
+        try:
+            for thread in threads:
+                thread.join()
+        except KeyboardInterrupt:
+            print("\n\nInterrupted by user. Waiting for threads to finish...")
+            for thread in threads:
+                thread.join(timeout=5)
+    else:
+        # Sequential execution for serial devices (USB driver limitations)
+        print("Note: Serial devices are processed sequentially due to USB driver limitations\n")
+        
+        for dev in devices:
+            device_id = f"serial {dev['serial']}" if dev['serial'] else "auto"
+            print(f"✓ Processing RTT for {device_id}...")
+            
+            result = rtt_device_task(dev, output_dir, mcu, programmer_type, reset, timeout, msg, msg_timeout, msg_retries, log_level)
+            results.append(result)
+            
+            if result['success']:
+                print(f"  → Completed: {result['file']}\n")
+            else:
+                print(f"  → Failed: {result.get('error', 'Unknown error')}\n")
     
     # Summary
-    print(f"\n{'='*60}")
+    print(f"{'='*60}")
     print(f"RTT completed for {len(devices)} device(s)")
     print(f"{'='*60}\n")
     
