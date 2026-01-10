@@ -1,6 +1,6 @@
 # bmlab-toolkit
 
-CI/CD toolkit for flashing and testing embedded devices.
+Toolkit for flashing and testing embedded devices.
 
 ## Features
 
@@ -42,6 +42,16 @@ bmlab-flash <firmware_file> --serial <serial_number>
 Flash with specific MCU:
 ```bash
 bmlab-flash <firmware_file> --mcu STM32F765ZG
+```
+
+Flash multiple devices via IP addresses (parallel):
+```bash
+bmlab-flash firmware.bin --ip 192.168.1.100 192.168.1.101 192.168.1.102 --mcu STM32F765ZG
+```
+
+Flash multiple devices via USB serial (sequential due to USB driver limitations):
+```bash
+bmlab-flash firmware.bin --serial 123456 789012 345678 --mcu STM32F103RE
 ```
 
 Specify programmer explicitly:
@@ -88,11 +98,40 @@ bmlab-rtt -v
 
 # Specify programmer explicitly (default: jlink)
 bmlab-rtt --programmer jlink --serial 123456
+
+# Monitor multiple devices via IP (parallel, saves logs to files)
+bmlab-rtt --ip 192.168.1.100 192.168.1.101 192.168.1.102 --output-dir rtt_logs --timeout 10
+
+# Monitor multiple devices via USB (sequential, saves logs to files)
+bmlab-rtt --serial 123456 789012 --mcu STM32F103RE --output-dir rtt_logs --timeout 10
 ```
+
+**Note:** Multiple devices require `--output-dir`. Logs are saved as `rtt_192_168_1_100.log` or `rtt_serial_123456.log`.
 
 Get RTT help:
 ```bash
 bmlab-rtt --help
+```
+
+### Erasing Flash Memory
+
+Erase flash memory on a device:
+
+```bash
+# Erase with auto-detected device
+bmlab-erase --mcu STM32F103RE
+
+# Erase specific device by serial
+bmlab-erase --serial 123456 --mcu STM32F103RE
+
+# Erase device via IP
+bmlab-erase --ip 192.168.1.100 --mcu STM32F765ZG
+
+# Erase multiple devices via IP (parallel)
+bmlab-erase --ip 192.168.1.100 192.168.1.101 192.168.1.102 --mcu STM32F103RE
+
+# Erase multiple devices via USB (sequential)
+bmlab-erase --serial 123456 789012 345678 --mcu STM32F103RE
 ```
 
 ### Scanning for Devices
@@ -113,65 +152,6 @@ bmlab-scan --network 192.168.1.0/24 --start-ip 100 --end-ip 150
 # With debug output
 bmlab-scan --network 192.168.1.0/24 --log-level DEBUG
 ```
-
-### Parallel Flashing
-
-Flash multiple devices simultaneously using the provided script:
-
-```bash
-# Flash multiple IPs from command line
-examples/parallel_flash.sh firmware.bin 192.168.1.100 192.168.1.101 192.168.1.102
-
-# Flash with specific MCU type
-examples/parallel_flash.sh --mcu STM32F765ZG firmware.bin 192.168.1.100 192.168.1.101
-
-# Flash from IP list file
-cat > ips.txt << EOF
-192.168.1.100
-192.168.1.101
-192.168.1.102
-EOF
-
-examples/parallel_flash.sh firmware.bin $(cat ips.txt)
-```
-
-The script outputs simple status for each device:
-```
-192.168.1.100 OK
-192.168.1.101 OK
-192.168.1.102 FAULT
-```
-
-### Parallel RTT Reading
-
-Read RTT from multiple devices simultaneously and save to log files:
-
-```bash
-# Read RTT from multiple devices (default 10 seconds)
-examples/parallel_rtt.sh 192.168.1.100 192.168.1.101 192.168.1.102
-
-# Read for 30 seconds with specific MCU
-examples/parallel_rtt.sh --mcu STM32F765ZG --timeout 30 192.168.1.100 192.168.1.101
-
-# Read indefinitely until Ctrl+C
-examples/parallel_rtt.sh --timeout 0 192.168.1.100 192.168.1.101
-
-# Read from IP list file
-examples/parallel_rtt.sh $(cat ips.txt)
-```
-
-Output:
-```
-Output directory: rtt_logs_20251214_143052
-
-192.168.1.100 OK (saved to rtt_logs_20251214_143052/rtt_192.168.1.100.log)
-192.168.1.101 OK (saved to rtt_logs_20251214_143052/rtt_192.168.1.101.log)
-192.168.1.102 FAULT (see rtt_logs_20251214_143052/rtt_192.168.1.102.log)
-
-All RTT sessions completed
-```
-
-Log files are saved in a timestamped directory with ANSI color codes removed for clean text output.
 
 ### Python API
 
@@ -206,9 +186,6 @@ import time
 prog = JLinkProgrammer(serial=123456789)
 
 try:
-    # Connect to target
-    prog._connect_target(mcu="STM32F765ZG")
-    
     # Reset device (optional)
     prog.reset(halt=False)
     time.sleep(0.5)

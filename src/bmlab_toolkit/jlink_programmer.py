@@ -257,6 +257,7 @@ class JLinkProgrammer(Programmer):
         except Exception as e:
             self.logger.warning(f"Error during disconnect: {e}")
         finally:
+            time.sleep(1)
             self._mcu = None
 
     def reset(self, halt: bool = False):
