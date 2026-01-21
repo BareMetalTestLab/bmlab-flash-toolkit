@@ -31,9 +31,11 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Cleanup before start
+      - name: Cleanup before start (containers)
         if: always()
         run: |
+          docker rm -f jlink100 jlink101 jlink102 2>/dev/null || true
+          docker network rm jlink-net 2>/dev/null || true
           pkill -9 -f JLinkRemoteServer || true
           sleep 2
 
@@ -142,8 +144,10 @@ jobs:
             fi
           done
 
-      - name: Cleanup after tests
+      - name: Cleanup after tests (containers)
         if: always()
         run: |
+          docker rm -f jlink100 jlink101 jlink102 2>/dev/null || true
+          docker network rm jlink-net 2>/dev/null || true
           pkill -9 -f JLinkRemoteServer || true
           sleep 2

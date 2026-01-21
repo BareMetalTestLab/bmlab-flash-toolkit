@@ -12,6 +12,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check tag matches pyproject.toml version
+        id: check-version
+        run: |
+          TAG_VERSION="${GITHUB_REF##*/}"
+          FILE_VERSION=$(grep -E '^version\s*=\s*' pyproject.toml | head -n1 | sed -E 's/version\s*=\s*"([^"]+)"/\1/')
+          if [[ "$TAG_VERSION" =~ ^v ]]; then
+            TAG_VERSION="${TAG_VERSION:1}"
+          fi
+          echo "Tag version: $TAG_VERSION"
+          echo "File version: $FILE_VERSION"
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match pyproject.toml version ($FILE_VERSION)"
+            exit 1
+          fi
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
