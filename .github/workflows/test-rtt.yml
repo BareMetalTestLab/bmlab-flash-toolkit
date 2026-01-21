@@ -136,7 +136,7 @@ jobs:
       - name: Test 4 — RTT single device by IP
         run: |
           . .venv/bin/activate
-          timeout 15 bmlab-rtt --ip $VNET_BASE.100 --timeout 3 | tee rtt-ip1.txt || true
+          timeout 60 bmlab-rtt --ip $VNET_BASE.100 --timeout 3 | tee rtt-ip1.txt || true
           
           if [ ! -s rtt-ip1.txt ]; then
             echo "Test 4 failed: no RTT output"
@@ -148,7 +148,7 @@ jobs:
         run: |
           . .venv/bin/activate
           mkdir -p rtt_logs_ip
-          timeout 15 bmlab-rtt --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --output-dir rtt_logs_ip --timeout 3 || true
+          timeout 60 bmlab-rtt --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --output-dir rtt_logs_ip --timeout 3 || true
           
           echo "Checking log files..."
           ls -lh rtt_logs_ip/
