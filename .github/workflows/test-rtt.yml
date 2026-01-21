@@ -37,8 +37,6 @@ jobs:
         if: always()
         run: |
           pkill -9 -f JLinkRemoteServer || true
-          docker rm -f jlink100 jlink101 jlink102 2>/dev/null || true
-          docker network rm jlink-net 2>/dev/null || true
           sleep 2
 
       - uses: actions/checkout@v4
@@ -174,7 +172,5 @@ jobs:
       - name: Cleanup after tests
         if: always()
         run: |
-          docker rm -f jlink100 jlink101 jlink102 || true
-          docker network rm jlink-net || true
           pkill -9 -f JLinkRemoteServer || true
           sleep 2

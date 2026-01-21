@@ -14,10 +14,21 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Build JLinkRemoteServer Docker image
+    - name: Pull JLink Docker image
       shell: bash
       run: |
-        docker build -t my-jlink-image -f .github/workflows/jlinkRemoteServerEmu.dockerfile .
+        ARCH=$(uname -m)
+        if [ "$ARCH" = "x86_64" ]; then
+          JLINK_IMAGE="ghcr.io/baremetaltestlab/bmlab-flash-toolkit/jlink-image-x86:latest"
+        elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+          JLINK_IMAGE="ghcr.io/baremetaltestlab/bmlab-flash-toolkit/jlink-image-arm:latest"
+        else
+          echo "Unsupported architecture: $ARCH"
+          exit 1
+        fi
+        echo "Using Docker image: $JLINK_IMAGE"
+        docker pull $JLINK_IMAGE
+        echo "JLINK_IMAGE=$JLINK_IMAGE" >> $GITHUB_ENV
 
     - name: Setup JLinkRemoteServer Docker containers
       shell: bash
@@ -34,7 +45,7 @@ runs:
           --name jlink100 \
           --network jlink-net \
           --ip ${{ inputs.vnet-base }}.100 \
-          my-jlink-image \
+          $JLINK_IMAGE \
           -select usb=$serial1 -device STM32F103RE -endian little -speed 4000 -if swd
         sleep 3
         
@@ -43,7 +54,7 @@ runs:
           --name jlink101 \
           --network jlink-net \
           --ip ${{ inputs.vnet-base }}.101 \
-          my-jlink-image \
+          $JLINK_IMAGE \
           -select usb=$serial2 -device STM32F103RE -endian little -speed 4000 -if swd
         sleep 3
         
@@ -52,6 +63,6 @@ runs:
           --name jlink102 \
           --network jlink-net \
           --ip ${{ inputs.vnet-base }}.102 \
-          my-jlink-image \
+          $JLINK_IMAGE \
           -select usb=$serial3 -device STM32F103RE -endian little -speed 4000 -if swd
         sleep 3
