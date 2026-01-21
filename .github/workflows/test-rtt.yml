@@ -132,6 +132,7 @@ jobs:
         run: |
           . .venv/bin/activate
           bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE
+          sleep 10
 
       - name: Test 4 — RTT single device by IP
         run: |
