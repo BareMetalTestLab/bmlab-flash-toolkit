@@ -10,7 +10,7 @@
 #     -select usb=SERIAL1 -device STM32F103RE -endian little -speed 4000 -if swd
 # Replace SERIAL1 with your J-Link serial number.
 #
-FROM ubuntu:22.04
+FROM ubuntu:latest
 
 ## Install required packages and JLink dependencies
 RUN apt-get update && \
@@ -21,7 +21,8 @@ RUN apt-get update && \
 # Copy both JLink packages into the container (they must be present in build context)
 # COPY .github/workflows/JLink_Linux_${JLINK_VERSION}_x86_64.deb /tmp/JLink_Linux_${JLINK_VERSION}_x86_64.deb
 # COPY .github/workflows/JLink_Linux_${JLINK_VERSION}_arm64.deb /tmp/JLink_Linux_${JLINK_VERSION}_arm64.deb
-
+COPY JLink_x86_64.deb /tmp/JLink_x86_64.deb
+COPY JLink_arm.deb /tmp/JLink_arm.deb
 # Workaround: replace udevadm with a stub to avoid postinst errors in Docker
 RUN if [ -f /bin/udevadm ]; then mv /bin/udevadm /bin/udevadm.real; fi && \
     echo '#!/bin/bash' > /bin/udevadm && \
@@ -32,20 +33,12 @@ RUN if [ -f /bin/udevadm ]; then mv /bin/udevadm /bin/udevadm.real; fi && \
 WORKDIR /tmp
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
-        wget --post-data "accept_license_agreement=accepted" \
-        https://www.segger.com/downloads/jlink/JLink_Linux_V794e_x86_64.deb \
-        -O JLink.deb && \
-        dpkg --force-depends -i JLink.deb && \
-        rm JLink.deb; \
+        dpkg --force-depends -i JLink_x86_64.deb || true && \
+        rm JLink_x86_64.deb; \
     elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
-        wget --post-data "accept_license_agreement=accepted" \
-        https://www.segger.com/downloads/jlink/JLink_Linux_V794e_arm64.deb \
-        -O JLink.deb && \
-        dpkg --force-depends -i JLink.deb && \
-        rm JLink.deb; \
+        dpkg --force-depends -i JLink_arm.deb || true && \
+        rm JLink_arm.deb; \
     fi
-
-# Restore real udevadm after J-Link installation
 RUN if [ -f /bin/udevadm.real ]; then rm /bin/udevadm && mv /bin/udevadm.real /bin/udevadm; fi
 
 # Add user (optional)
