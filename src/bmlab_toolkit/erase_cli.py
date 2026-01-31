@@ -12,48 +12,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from .jlink_programmer import JLinkProgrammer
 
 
-def main():
-    """Main entry point for bmlab-erase command."""
-    parser = argparse.ArgumentParser(
-        description='Erase flash memory of embedded devices',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Erase with auto-detected programmer and MCU
-  bmlab-erase
-
-  # Specify JLink serial number
-  bmlab-erase --serial 123456789
-
-  # Erase multiple devices by serial
-  bmlab-erase --serial 123456 789012 345678
-
-  # Specify MCU explicitly
-  bmlab-erase --mcu STM32F765ZG
-
-  # Use IP address for network JLink
-  bmlab-erase --ip 192.168.1.100
-
-  # Erase multiple devices in parallel by IP
-  bmlab-erase --ip 192.168.1.100 192.168.1.101 192.168.1.102
-        """
-    )
-    
-    parser.add_argument('--serial', '-s', type=int, nargs='+', default=None,
-                       help='JLink serial number(s) (can specify multiple for sequential erase, or leave empty for auto-detect)')
-    
-    parser.add_argument('--mcu', '-m', type=str, default=None,
-                       help='MCU name (e.g., STM32F765ZG). Auto-detects if not provided.')
-    
-    parser.add_argument('--ip', type=str, nargs='+', default=None,
-                       help='JLink IP address(es) for network connection (can specify multiple for parallel erase)')
-    
-    parser.add_argument('--log-level', '-l', type=str, default='WARNING',
-                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-                       help='Set logging level (default: WARNING)')
-    
-    args = parser.parse_args()
-    
+def main(args: argparse.Namespace):
     # Validate that --serial and --ip are mutually exclusive
     if args.serial and args.ip:
         print("Error: Cannot specify both --serial and --ip")
