@@ -75,62 +75,8 @@ def scan_network_ip(ip_str, log_level):
             pass
 
 
-def main():
+def main(args: argparse.Namespace):
     """Main entry point for bmlab-scan command."""
-    parser = argparse.ArgumentParser(
-        description='Scan and list available programmers',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Scan for USB JLink programmers
-  bmlab-scan
-
-  # Scan network for JLink Remote Servers
-  bmlab-scan --network 192.168.1.0/24
-
-  # Scan with debug output
-  bmlab-scan --log-level DEBUG
-        """
-    )
-    
-    parser.add_argument(
-        '--network', '-n',
-        type=str,
-        default=None,
-        help='Network to scan for JLink Remote Servers (e.g., 192.168.1.0/24)'
-    )
-    
-    parser.add_argument(
-        '--start-ip',
-        type=int,
-        default=None,
-        help='Starting last octet for IP range (e.g., 100 for x.x.x.100)'
-    )
-    
-    parser.add_argument(
-        '--end-ip',
-        type=int,
-        default=None,
-        help='Ending last octet for IP range (e.g., 150 for x.x.x.150)'
-    )
-    
-    parser.add_argument(
-        '--programmer', '-p',
-        type=str,
-        default=DEFAULT_PROGRAMMER,
-        choices=SUPPORTED_PROGRAMMERS,
-        help=f'Programmer type to scan for (default: {DEFAULT_PROGRAMMER})'
-    )
-    
-    parser.add_argument(
-        '--log-level', '-l',
-        type=str,
-        default='WARNING',
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-        help='Set logging level (default: WARNING)'
-    )
-    
-    args = parser.parse_args()
     
     try:
         # Convert log level string to logging constant

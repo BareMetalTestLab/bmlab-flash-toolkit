@@ -35,10 +35,7 @@ dev = [
 ]
 
 [project.scripts]
-bmlab-flash = "bmlab_toolkit.flashing:main"
-bmlab-erase = "bmlab_toolkit.erase_cli:main"
-bmlab-rtt = "bmlab_toolkit.rtt_cli:main"
-bmlab-scan = "bmlab_toolkit.scan_cli:main"
+bmlab-cli = "bmlab_toolkit.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/BareMetalTestLab/bmlab-flash-toolkit"

@@ -1,7 +1,7 @@
 """Tests for flashing module."""
 
 import pytest
-from bmlab_toolkit.flashing import flash_device_by_usb
+from bmlab_toolkit.flash_cli import flash_device_by_usb
 
 
 def test_unsupported_programmer():

@@ -18,6 +18,12 @@ Toolkit for flashing and testing embedded devices.
 pip install bmlab-toolkit
 ```
 
+## Installation CLI autocomplete
+```bash
+activate-global-python-argcomplete
+eval "$(register-python-argcomplete bmlab-cli)"
+```
+
 ## Usage
 
 ### Command Line
