@@ -52,7 +52,7 @@ jobs:
       - name: Detect devices and save serials
         run: |
           . .venv/bin/activate
-          bmlab-scan | tee scan.txt
+          bml scan | tee scan.txt
           count=$(grep -c "Target:  *STM32F103RE" scan.txt)
           awk '/JLink Programmer/ {serial=""} /Serial:/ {serial=$2} /Target: *STM32F103RE/ && serial {print serial}' scan.txt | sort | uniq > serials.txt
           
@@ -66,7 +66,7 @@ jobs:
         run: |
           . .venv/bin/activate
           serial=$(sed -n '1p' serials.txt)
-          bmlab-erase --serial $serial --mcu STM32F103RE | tee erase-serial1.txt
+          bml erase --serial $serial --mcu STM32F103RE | tee erase-serial1.txt
           
           if ! grep -q "Success" erase-serial1.txt; then
             echo "Test 1 failed: erase not successful"
@@ -78,7 +78,7 @@ jobs:
         run: |
           . .venv/bin/activate
           serial=$(sed -n '1p' serials.txt)
-          bmlab-erase --serial $serial | tee erase-serial2.txt
+          bml erase --serial $serial | tee erase-serial2.txt
           
           if ! grep -q "Success" erase-serial2.txt; then
             echo "Test 2 failed: erase not successful"
@@ -93,7 +93,7 @@ jobs:
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
           
-          bmlab-erase --serial $serial1 $serial2 $serial3 --mcu STM32F103RE | tee erase-serial3.txt
+          bml erase --serial $serial1 $serial2 $serial3 --mcu STM32F103RE | tee erase-serial3.txt
           
           success_count=$(grep -c "Success" erase-serial3.txt || echo 0)
           
@@ -113,7 +113,7 @@ jobs:
       - name: Test 4 — Erase single device by IP
         run: |
           . .venv/bin/activate
-          bmlab-erase --ip $VNET_BASE.100 --mcu STM32F103RE | tee erase-ip1.txt
+          bml erase --ip $VNET_BASE.100 --mcu STM32F103RE | tee erase-ip1.txt
           
           if ! grep -q "Success" erase-ip1.txt; then
             echo "Test 4 failed: erase not successful"
@@ -124,7 +124,7 @@ jobs:
       - name: Test 5 — Erase three devices in parallel by IP
         run: |
           . .venv/bin/activate
-          bmlab-erase --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee erase-ip3.txt
+          bml erase --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee erase-ip3.txt
           
           success_count=$(grep -c "Success" erase-ip3.txt || echo 0)
           

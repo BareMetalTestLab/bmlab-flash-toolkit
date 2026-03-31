@@ -23,27 +23,27 @@ pytest
 
 ### CLI Command
 
-After installation, the `bmlab-flash` command is available:
+After installation, the `bml` command is available:
 
 ```bash
-# List connected programmers
-bmlab-flash
-bmlab-flash --programmer jlink
+# Scan for connected programmers
+bml scan
+bml scan --programmer jlink
 
 # Flash with auto-detected JLink (first available)
-bmlab-flash firmware.hex
+bml flash firmware.hex
 
 # With specific serial number
-bmlab-flash firmware.hex --serial 123456789
+bml flash firmware.hex --serial 123456789
 
 # With specific MCU
-bmlab-flash firmware.hex --mcu STM32F765ZG
+bml flash firmware.hex --mcu STM32F765ZG
 
 # Specify everything explicitly
-bmlab-flash firmware.hex --serial 123456789 --mcu STM32F765ZG --programmer jlink
+bml flash firmware.hex --serial 123456789 --mcu STM32F765ZG --programmer jlink
 
 # Get help
-bmlab-flash --help
+bml flash --help
 ```
 
 ### RTT Communication
@@ -52,22 +52,22 @@ Connect to device RTT for real-time communication:
 
 ```bash
 # Connect with auto-detection
-bmlab-rtt
+bml rtt
 
 # Connect to specific device
-bmlab-rtt --serial 123456789 --mcu STM32F765ZG
+bml rtt --serial 123456789 --mcu STM32F765ZG
 
 # Connect via IP address
-bmlab-rtt --ip 192.168.1.100
+bml rtt --ip 192.168.1.100
 
-# Read indefinitely
-bmlab-rtt -t 0
+# Read for 10 seconds
+bml rtt -t 10
 
 # Send message
-bmlab-rtt --msg "hello\n"
+bml rtt --msg "hello\n"
 
 # Get help
-bmlab-rtt --help
+bml rtt --help
 ```
 
 See [RTT_GUIDE.md](RTT_GUIDE.md) for detailed RTT documentation.

@@ -52,7 +52,7 @@ jobs:
       - name: Detect devices and save serials
         run: |
           . .venv/bin/activate
-          bmlab-scan | tee scan.txt
+          bml scan | tee scan.txt
           count=$(grep -c "Target:  *STM32F103RE" scan.txt)
           awk '/JLink Programmer/ {serial=""} /Serial:/ {serial=$2} /Target: *STM32F103RE/ && serial {print serial}' scan.txt | sort | uniq > serials.txt
           
@@ -66,7 +66,7 @@ jobs:
         run: |
           . .venv/bin/activate
           serial=$(sed -n '1p' serials.txt)
-          bmlab-flash .github/workflows/fw.bin --serial $serial --mcu STM32F103RE | tee flash-serial1.txt
+          bml flash .github/workflows/fw.bin --serial $serial --mcu STM32F103RE | tee flash-serial1.txt
           
           if ! grep -q "Success" flash-serial1.txt; then
             echo "Test 1 failed: flash not successful"
@@ -78,7 +78,7 @@ jobs:
         run: |
           . .venv/bin/activate
           serial=$(sed -n '1p' serials.txt)
-          bmlab-flash .github/workflows/fw.bin --serial $serial | tee flash-serial2.txt
+          bml flash .github/workflows/fw.bin --serial $serial | tee flash-serial2.txt
           
           if ! grep -q "Success" flash-serial2.txt; then
             echo "Test 2 failed: flash not successful"
@@ -90,7 +90,7 @@ jobs:
         run: |
           . .venv/bin/activate
           serial=$(sed -n '1p' serials.txt)
-          bmlab-flash .github/workflows/fw.hex --serial $serial | tee flash-serial2.txt
+          bml flash .github/workflows/fw.hex --serial $serial | tee flash-serial2.txt
           
           if ! grep -q "Success" flash-serial2.txt; then
             echo "Test 2.1 failed: flash not successful"
@@ -105,7 +105,7 @@ jobs:
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
           
-          bmlab-flash .github/workflows/fw.bin --serial $serial1 $serial2 $serial3 --mcu STM32F103RE | tee flash-serial3.txt
+          bml flash .github/workflows/fw.bin --serial $serial1 $serial2 $serial3 --mcu STM32F103RE | tee flash-serial3.txt
           
           if ! grep -q "Success" flash-serial3.txt; then
             echo "Test 3 failed: flash not successful"
@@ -123,7 +123,7 @@ jobs:
       - name: Test 3.1 — Erase three devices before flashing
         run: |
           . .venv/bin/activate
-          bmlab-erase --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee erase-before-flash.txt
+          bml erase --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee erase-before-flash.txt
           
           success_count=$(grep -c "Success" erase-before-flash.txt || echo 0)
           
@@ -136,7 +136,7 @@ jobs:
       - name: Test 4 — Flash three devices in parallel
         run: |
           . .venv/bin/activate
-          bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee flash4.txt
+          bml flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE | tee flash4.txt
           
           success_count=$(grep -c "Success" flash4.txt || echo 0)
           

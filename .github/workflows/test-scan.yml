@@ -47,10 +47,10 @@ jobs:
           . .venv/bin/activate
           pip install -e ".[dev]"
 
-      - name: Test 1 — bmlab-scan (no arguments)
+      - name: Test 1 — bml scan (no arguments)
         run: |
           . .venv/bin/activate
-          bmlab-scan | tee scan1.txt
+          bml scan | tee scan1.txt
           count=$(grep -c "Target:  *STM32F103RE" scan1.txt)
           awk '/JLink Programmer/ {serial=""} /Serial:/ {serial=$2} /Target: *STM32F103RE/ && serial {print serial}' scan1.txt | sort | uniq > serials.txt
           
@@ -60,10 +60,10 @@ jobs:
             exit 1
           fi
 
-      - name: Test 2 — bmlab-scan -p jlink
+      - name: Test 2 — bml scan -p jlink
         run: |
           . .venv/bin/activate
-          bmlab-scan -p jlink | tee scan2.txt
+          bml scan -p jlink | tee scan2.txt
           diff scan1.txt scan2.txt
           
       - name: Test 3 — Start JLinkRemoteServer and scan via network
@@ -72,27 +72,27 @@ jobs:
           serial=$(head -n1 serials.txt)
           nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > /dev/null 2>&1 &
           sleep 3
-          bmlab-scan --network 127.0.0.1/32 | tee scan3.txt
+          bml scan --network 127.0.0.1/32 | tee scan3.txt
           grep -q "Target:  *STM32F103RE" scan3.txt
           grep -q "IP: *127.0.0.1" scan3.txt
           pkill -9 -f JLinkRemoteServer || true
           sleep 1
 
-      - name: Test 4 — bmlab-scan --network 127.0.0.1/32 -p jlink
+      - name: Test 4 — bml scan --network 127.0.0.1/32 -p jlink
         run: |
           . .venv/bin/activate
           serial=$(head -n1 serials.txt)
           nohup JLinkRemoteServer -select usb=$serial -device STM32F103RE -endian little -speed 4000 -if swd > /dev/null 2>&1 &
           sleep 3
-          bmlab-scan --network 127.0.0.1/32 -p jlink | tee scan4.txt
+          bml scan --network 127.0.0.1/32 -p jlink | tee scan4.txt
           diff scan3.txt scan4.txt
           pkill -9 -f JLinkRemoteServer || true
           sleep 1
 
-      - name: Test 5 — bmlab-scan --network 127.0.0.2/32 (negative)
+      - name: Test 5 — bml scan --network 127.0.0.2/32 (negative)
         run: |
           . .venv/bin/activate
-          ! bmlab-scan --network 127.0.0.2/32 | tee scan5.txt | grep -q "STM32F103RE"
+          ! bml scan --network 127.0.0.2/32 | tee scan5.txt | grep -q "STM32F103RE"
           grep -qi "No JLink Remote Servers found on the network." scan5.txt
 
       - name: Setup JLink network containers
@@ -105,7 +105,7 @@ jobs:
       - name: Test 6 — Multiple RemoteServers network scan
         run: |
           . .venv/bin/activate
-          bmlab-scan --network $VNET_BASE.0/$VNET_MASK | tee scan6.txt
+          bml scan --network $VNET_BASE.0/$VNET_MASK | tee scan6.txt
           
           f103_count=$(grep -c "Target:.*STM32F103RE" scan6.txt || echo 0)
           
@@ -126,7 +126,7 @@ jobs:
       - name: Test 7 — Network scan with IP range filter
         run: |
           . .venv/bin/activate
-          bmlab-scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150 | tee scan7.txt
+          bml scan --network $VNET_BASE.0/$VNET_MASK --start-ip 100 --end-ip 150 | tee scan7.txt
           
           f103_count=$(grep -c "Target:.*STM32F103RE" scan7.txt || echo 0)
           

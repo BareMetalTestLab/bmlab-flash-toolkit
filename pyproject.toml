@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bmlab-toolkit"
-version = "0.2.1"
+version = "0.2.2"
 description = "CI/CD toolkit for flashing and testing embedded devices"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -26,6 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "pylink-square>=1.0.0",
+    "argcomplete>=3.0.0",
 ]
 
 [project.optional-dependencies]
@@ -35,7 +36,7 @@ dev = [
 ]
 
 [project.scripts]
-bmlab-cli = "bmlab_toolkit.cli:main"
+bml = "bmlab_toolkit.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/BareMetalTestLab/bmlab-flash-toolkit"

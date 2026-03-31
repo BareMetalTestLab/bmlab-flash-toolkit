@@ -21,7 +21,7 @@ pip install bmlab-toolkit
 ## Installation CLI autocomplete
 ```bash
 activate-global-python-argcomplete
-eval "$(register-python-argcomplete bmlab-cli)"
+eval "$(register-python-argcomplete bml)"
 ```
 
 ## Usage
@@ -30,44 +30,44 @@ eval "$(register-python-argcomplete bmlab-cli)"
 
 List connected programmers:
 ```bash
-bmlab-flash
+bml scan
 # or specify programmer type
-bmlab-flash --programmer jlink
+bml scan --programmer jlink
 ```
 
 Flash a device with auto-detected programmer (uses first available JLink):
 ```bash
-bmlab-flash <firmware_file>
+bml flash <firmware_file>
 ```
 
 Flash with specific serial number:
 ```bash
-bmlab-flash <firmware_file> --serial <serial_number>
+bml flash <firmware_file> --serial <serial_number>
 ```
 
 Flash with specific MCU:
 ```bash
-bmlab-flash <firmware_file> --mcu STM32F765ZG
+bml flash <firmware_file> --mcu STM32F765ZG
 ```
 
 Flash multiple devices via IP addresses (parallel):
 ```bash
-bmlab-flash firmware.bin --ip 192.168.1.100 192.168.1.101 192.168.1.102 --mcu STM32F765ZG
+bml flash firmware.bin --ip 192.168.1.100 192.168.1.101 192.168.1.102 --mcu STM32F765ZG
 ```
 
 Flash multiple devices via USB serial (sequential due to USB driver limitations):
 ```bash
-bmlab-flash firmware.bin --serial 123456 789012 345678 --mcu STM32F103RE
+bml flash firmware.bin --serial 123456 789012 345678 --mcu STM32F103RE
 ```
 
 Specify programmer explicitly:
 ```bash
-bmlab-flash <firmware_file> --programmer jlink --serial 123456
+bml flash <firmware_file> --programmer jlink --serial 123456
 ```
 
 Get help:
 ```bash
-bmlab-flash --help
+bml flash --help
 ```
 
 ### RTT (Real-Time Transfer)
@@ -75,48 +75,48 @@ bmlab-flash --help
 Connect to RTT for real-time communication with the target device:
 
 ```bash
-# Connect with auto-detection and read for 10 seconds
-bmlab-rtt
+# Connect with auto-detection and read indefinitely (Ctrl+C to stop)
+bml rtt
 
 # Specify programmer serial number
-bmlab-rtt --serial 123456789
+bml rtt --serial 123456789
 
 # Connect via IP address (no MCU needed)
-bmlab-rtt --ip 192.168.1.100
+bml rtt --ip 192.168.1.100
 
 # Specify MCU explicitly
-bmlab-rtt --mcu STM32F765ZG
+bml rtt --mcu STM32F765ZG
 
-# Read indefinitely until Ctrl+C
-bmlab-rtt -t 0
+# Read for 10 seconds
+bml rtt -t 10
 
 # Send message after connection
-bmlab-rtt --msg "hello\n"
+bml rtt --msg "hello\n"
 
 # Send message after custom delay
-bmlab-rtt --msg "test" --msg-timeout 2.0
+bml rtt --msg "test" --msg-timeout 2.0
 
 # Connect without resetting target
-bmlab-rtt --no-reset
+bml rtt --no-reset
 
 # Verbose output
-bmlab-rtt -v
+bml rtt -v
 
 # Specify programmer explicitly (default: jlink)
-bmlab-rtt --programmer jlink --serial 123456
+bml rtt --programmer jlink --serial 123456
 
 # Monitor multiple devices via IP (parallel, saves logs to files)
-bmlab-rtt --ip 192.168.1.100 192.168.1.101 192.168.1.102 --output-dir rtt_logs --timeout 10
+bml rtt --ip 192.168.1.100 192.168.1.101 192.168.1.102 --output-dir rtt_logs --timeout 10
 
 # Monitor multiple devices via USB (sequential, saves logs to files)
-bmlab-rtt --serial 123456 789012 --mcu STM32F103RE --output-dir rtt_logs --timeout 10
+bml rtt --serial 123456 789012 --mcu STM32F103RE --output-dir rtt_logs --timeout 10
 ```
 
 **Note:** Multiple devices require `--output-dir`. Logs are saved as `rtt_192_168_1_100.log` or `rtt_serial_123456.log`.
 
 Get RTT help:
 ```bash
-bmlab-rtt --help
+bml rtt --help
 ```
 
 ### Erasing Flash Memory
@@ -125,38 +125,38 @@ Erase flash memory on a device:
 
 ```bash
 # Erase with auto-detected device
-bmlab-erase --mcu STM32F103RE
+bml erase --mcu STM32F103RE
 
 # Erase specific device by serial
-bmlab-erase --serial 123456 --mcu STM32F103RE
+bml erase --serial 123456 --mcu STM32F103RE
 
 # Erase device via IP
-bmlab-erase --ip 192.168.1.100 --mcu STM32F765ZG
+bml erase --ip 192.168.1.100 --mcu STM32F765ZG
 
 # Erase multiple devices via IP (parallel)
-bmlab-erase --ip 192.168.1.100 192.168.1.101 192.168.1.102 --mcu STM32F103RE
+bml erase --ip 192.168.1.100 192.168.1.101 192.168.1.102 --mcu STM32F103RE
 
 # Erase multiple devices via USB (sequential)
-bmlab-erase --serial 123456 789012 345678 --mcu STM32F103RE
+bml erase --serial 123456 789012 345678 --mcu STM32F103RE
 ```
 
 ### Scanning for Devices
 
 Scan for USB-connected JLink devices:
 ```bash
-bmlab-scan
+bml scan
 ```
 
 Scan network for JLink Remote Servers:
 ```bash
 # Scan entire network
-bmlab-scan --network 192.168.1.0/24
+bml scan --network 192.168.1.0/24
 
 # Scan specific IP range (last octet)
-bmlab-scan --network 192.168.1.0/24 --start-ip 100 --end-ip 150
+bml scan --network 192.168.1.0/24 --start-ip 100 --end-ip 150
 
 # With debug output
-bmlab-scan --network 192.168.1.0/24 --log-level DEBUG
+bml scan --network 192.168.1.0/24 --log-level DEBUG
 ```
 
 ### Python API

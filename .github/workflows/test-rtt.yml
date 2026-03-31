@@ -52,7 +52,7 @@ jobs:
       - name: Detect devices and save serials
         run: |
           . .venv/bin/activate
-          bmlab-scan | tee scan.txt
+          bml scan | tee scan.txt
           count=$(grep -c "Target:  *STM32F103RE" scan.txt)
           awk '/JLink Programmer/ {serial=""} /Serial:/ {serial=$2} /Target: *STM32F103RE/ && serial {print serial}' scan.txt | sort | uniq > serials.txt
           
@@ -69,13 +69,13 @@ jobs:
           serial2=$(sed -n '2p' serials.txt)
           serial3=$(sed -n '3p' serials.txt)
           
-          bmlab-flash .github/workflows/fw.bin --serial $serial1 $serial2 $serial3 --mcu STM32F103RE
+          bml flash .github/workflows/fw.bin --serial $serial1 $serial2 $serial3 --mcu STM32F103RE
 
       - name: Test 1 — RTT single device by serial
         run: |
           . .venv/bin/activate
           serial=$(sed -n '1p' serials.txt)
-          timeout 5 bmlab-rtt --serial $serial --mcu STM32F103RE --timeout 3 | tee rtt-serial1.txt || true
+          timeout 5 bml rtt --serial $serial --mcu STM32F103RE --timeout 3 | tee rtt-serial1.txt || true
           
           if [ ! -s rtt-serial1.txt ]; then
             echo "Test 1 failed: no RTT output"
@@ -86,7 +86,7 @@ jobs:
         run: |
           . .venv/bin/activate
           serial=$(sed -n '1p' serials.txt)
-          timeout 5 bmlab-rtt --serial $serial --timeout 3 | tee rtt-auto.txt || true
+          timeout 5 bml rtt --serial $serial --timeout 3 | tee rtt-auto.txt || true
           
           if [ ! -s rtt-auto.txt ]; then
             echo "Test 2 failed: no RTT output"
@@ -106,7 +106,7 @@ jobs:
           # Serial devices are processed sequentially (USB driver limitation)
           # Each device: ~3s RTT + ~2s connect/disconnect = ~5s
           # Total: 3 devices * 5s = 15s + 10s buffer = 25s
-          timeout 25 bmlab-rtt --serial $serial1 $serial2 $serial3 --mcu STM32F103RE --output-dir rtt_logs_serial --timeout 3 || true
+          timeout 25 bml rtt --serial $serial1 $serial2 $serial3 --mcu STM32F103RE --output-dir rtt_logs_serial --timeout 3 || true
           
           echo "Checking log files..."
           ls -lh rtt_logs_serial/
@@ -131,13 +131,13 @@ jobs:
       - name: Flash firmware to network devices
         run: |
           . .venv/bin/activate
-          bmlab-flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE
+          bml flash .github/workflows/fw.bin --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --mcu STM32F103RE
           sleep 10
 
       - name: Test 4 — RTT single device by IP
         run: |
           . .venv/bin/activate
-          timeout 60 bmlab-rtt --ip $VNET_BASE.100 --timeout 3 | tee rtt-ip1.txt || true
+          timeout 60 bml rtt --ip $VNET_BASE.100 --timeout 3 | tee rtt-ip1.txt || true
           
           if [ ! -s rtt-ip1.txt ]; then
             echo "Test 4 failed: no RTT output"
@@ -149,7 +149,7 @@ jobs:
         run: |
           . .venv/bin/activate
           mkdir -p rtt_logs_ip
-          timeout 60 bmlab-rtt --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --output-dir rtt_logs_ip --timeout 3 || true
+          timeout 60 bml rtt --ip $VNET_BASE.100 $VNET_BASE.101 $VNET_BASE.102 --output-dir rtt_logs_ip --timeout 3 || true
           
           echo "Checking log files..."
           ls -lh rtt_logs_ip/

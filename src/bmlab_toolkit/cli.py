@@ -150,8 +150,8 @@ def create_rtt_parser(subparser: argparse._SubParsersAction):
     rtt_parser.add_argument(
         '--timeout', '-t',
         type=float,
-        default=10.0,
-        help='Read timeout in seconds. 0 means read until interrupted (default: 10.0)'
+        default=0,
+        help='Read timeout in seconds. 0 means read until interrupted (default: 0)'
         )
     
     rtt_parser.add_argument(
@@ -238,20 +238,36 @@ def create_flash_parser(subparser: argparse._SubParsersAction):
 
 def main():
     
-    parser = argparse.ArgumentParser(description="BMLab-toolkit")
-    subparser = parser.add_subparsers(title='Available commands', dest='command', metavar='Command', help='Command descriptions', required=True)
+    parser = argparse.ArgumentParser(
+        description="BMLab-toolkit - Toolkit for flashing and testing embedded devices",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  bml scan                          Scan for connected programmers
+  bml scan --network 192.168.1.0/24 Scan network for JLink Remote Servers
+  bml flash firmware.hex            Flash firmware to device
+  bml flash fw.bin --ip 192.168.1.100  Flash via IP address
+  bml rtt                           Connect to RTT for real-time communication
+  bml erase --mcu STM32F103RE       Erase flash memory
+        """
+    )
+    subparser = parser.add_subparsers(title='Available commands', dest='command', metavar='Command', help='Command descriptions')
     create_rtt_parser(subparser)
     create_scan_parser(subparser)
     create_erase_parser(subparser)
     create_flash_parser(subparser)
-    # flash_parser = subparsers.add_parser('flash', help='Flash embedded devices and manage programmers')
 
-
-    # Включаем автодополнение
+    # Enable autocompletion
     argcomplete.autocomplete(parser)
     
-    # Парсим аргументы
+    # Parse arguments
     args = parser.parse_args()
+    
+    # Show help if no command provided
+    if args.command is None:
+        parser.print_help()
+        return
+    
     if args.command == 'rtt':
         rtt_cli.main(args)
     elif args.command == 'scan':
