@@ -42,8 +42,9 @@ def main(args: argparse.Namespace):
         print("Error: --output-dir is required when using multiple devices")
         sys.exit(1)
     
-    # Convert log level string to logging constant
+    # Configure logging level for application
     log_level = getattr(logging, args.log_level.upper())
+    logging.basicConfig(level=log_level, format='%(levelname)s - %(message)s', force=True)
     
     try:
         if len(devices) == 1:
@@ -272,4 +273,18 @@ def rtt_multiple_devices(devices, output_dir, mcu, programmer_type, reset, timeo
 
 
 if __name__ == "__main__":
-    main()
+    from .constants import SUPPORTED_PROGRAMMERS, DEFAULT_PROGRAMMER, LOG_LEVELS, DEFAULT_LOG_LEVEL
+    parser = argparse.ArgumentParser(description='Connect to RTT for real-time data transfer')
+    parser.add_argument('--serial', '-s', type=int, nargs='+', default=None, help='Programmer serial number(s)')
+    parser.add_argument('--programmer', '-p', type=str, default=DEFAULT_PROGRAMMER, choices=SUPPORTED_PROGRAMMERS, help='Programmer type')
+    parser.add_argument('--ip', type=str, nargs='+', default=None, help='JLink IP address(es)')
+    parser.add_argument('--output-dir', type=str, default=None, help='Output directory for RTT logs')
+    parser.add_argument('--mcu', '-m', type=str, default=None, help='MCU name')
+    parser.add_argument('--reset', dest='reset', action='store_true', default=True, help='Reset target after connection')
+    parser.add_argument('--no-reset', dest='reset', action='store_false', help='Do not reset target')
+    parser.add_argument('--timeout', '-t', type=float, default=0, help='Read timeout in seconds (0 = infinite)')
+    parser.add_argument('--msg', type=str, default=None, help='Message to send via RTT')
+    parser.add_argument('--msg-timeout', type=float, default=0.5, help='Delay before sending message')
+    parser.add_argument('--msg-retries', type=int, default=10, help='Number of retries for sending message')
+    parser.add_argument('--log-level', '-l', type=str, default=DEFAULT_LOG_LEVEL, choices=LOG_LEVELS, help=f'Logging level (default: {DEFAULT_LOG_LEVEL})')
+    main(parser.parse_args())

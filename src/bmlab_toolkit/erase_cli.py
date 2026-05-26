@@ -19,8 +19,9 @@ def main(args: argparse.Namespace):
         sys.exit(1)
     
     try:
-        # Convert log level string to logging constant
+        # Configure logging level for application
         log_level = getattr(logging, args.log_level.upper())
+        logging.basicConfig(level=log_level, format='%(levelname)s - %(message)s', force=True)
         
         # Handle IP addresses and serials
         ip_list = args.ip if args.ip else None
@@ -127,4 +128,10 @@ def erase_devices(serial, ip_list, mcu, log_level):
 
 
 if __name__ == "__main__":
-    main()
+    from .constants import LOG_LEVELS, DEFAULT_LOG_LEVEL
+    parser = argparse.ArgumentParser(description='Erase flash memory of embedded devices')
+    parser.add_argument('--serial', '-s', type=int, nargs='+', default=None, help='JLink serial number(s)')
+    parser.add_argument('--mcu', '-m', type=str, default=None, help='MCU name (e.g., STM32F765ZG)')
+    parser.add_argument('--ip', type=str, nargs='+', default=None, help='JLink IP address(es)')
+    parser.add_argument('--log-level', '-l', type=str, default=DEFAULT_LOG_LEVEL, choices=LOG_LEVELS, help=f'Logging level (default: {DEFAULT_LOG_LEVEL})')
+    main(parser.parse_args())

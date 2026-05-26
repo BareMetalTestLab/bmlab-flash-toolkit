@@ -79,11 +79,9 @@ def main(args: argparse.Namespace):
     """Main entry point for bmlab-scan command."""
     
     try:
-        # Convert log level string to logging constant
+        # Configure logging level for application
         log_level = getattr(logging, args.log_level.upper())
-        
-        # Configure logging
-        logging.basicConfig(level=log_level, format='%(levelname)s - %(message)s')
+        logging.basicConfig(level=log_level, format='%(levelname)s - %(message)s', force=True)
         
         if args.programmer.lower() == PROGRAMMER_JLINK:
             # Network scan mode
@@ -188,4 +186,11 @@ def main(args: argparse.Namespace):
 
 
 if __name__ == "__main__":
-    main()
+    from .constants import LOG_LEVELS, DEFAULT_LOG_LEVEL
+    parser = argparse.ArgumentParser(description='Scan and list available programmers')
+    parser.add_argument('--network', '-n', type=str, default=None, help='Network to scan (e.g., 192.168.1.0/24)')
+    parser.add_argument('--start-ip', type=int, default=None, help='Starting last octet for IP range')
+    parser.add_argument('--end-ip', type=int, default=None, help='Ending last octet for IP range')
+    parser.add_argument('--programmer', '-p', type=str, default='jlink', choices=['jlink'], help='Programmer type')
+    parser.add_argument('--log-level', '-l', type=str, default=DEFAULT_LOG_LEVEL, choices=LOG_LEVELS, help=f'Logging level (default: {DEFAULT_LOG_LEVEL})')
+    main(parser.parse_args())

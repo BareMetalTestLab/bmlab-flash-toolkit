@@ -5,7 +5,7 @@
             "name": "bmlab-flash: Flash firmware (auto-detect)",
             "type": "debugpy",
             "request": "launch",
-            "module": "bmlab_toolkit.flashing",
+            "module": "bmlab_toolkit.flash_cli",
             "args": [
                 "firmware.hex",
                 "--log-level", "DEBUG"
@@ -17,7 +17,7 @@
             "name": "bmlab-flash: Flash with serial",
             "type": "debugpy",
             "request": "launch",
-            "module": "bmlab_toolkit.flashing",
+            "module": "bmlab_toolkit.flash_cli",
             "args": [
                 "firmware.hex",
                 "--serial", "123456789",
@@ -30,7 +30,7 @@
             "name": "bmlab-flash: Flash with IP",
             "type": "debugpy",
             "request": "launch",
-            "module": "bmlab_toolkit.flashing",
+            "module": "bmlab_toolkit.flash_cli",
             "args": [
                 "firmware.hex",
                 "--ip", "192.168.1.100",
@@ -43,7 +43,7 @@
             "name": "bmlab-flash: Flash with MCU specified",
             "type": "debugpy",
             "request": "launch",
-            "module": "bmlab_toolkit.flashing",
+            "module": "bmlab_toolkit.flash_cli",
             "args": [
                 "firmware.hex",
                 "--mcu", "STM32F765ZG",
@@ -105,18 +105,6 @@
             "request": "launch",
             "module": "bmlab_toolkit.scan_cli",
             "args": [
-                "--log-level", "DEBUG"
-            ],
-            "console": "integratedTerminal",
-            "justMyCode": false
-        },
-        {
-            "name": "bmlab-scan: Scan with JSON output",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "bmlab_toolkit.scan_cli",
-            "args": [
-                "--format", "json",
                 "--log-level", "DEBUG"
             ],
             "console": "integratedTerminal",

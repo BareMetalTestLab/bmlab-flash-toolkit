@@ -25,8 +25,9 @@ def main(args: argparse.Namespace):
         sys.exit(1)
 
     try:
-        # Convert log level string to logging constant
+        # Configure logging level for application
         log_level = getattr(logging, args.log_level.upper())
+        logging.basicConfig(level=log_level, format='%(levelname)s - %(message)s', force=True)
 
         # Handle IP addresses and serials (convert to list for uniform processing)
         ip_list = args.ip if args.ip else None
@@ -135,4 +136,12 @@ def flash_devices(serial, ip_list, fw_file, mcu, programmer_type, log_level):
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    from .constants import SUPPORTED_PROGRAMMERS, DEFAULT_PROGRAMMER, LOG_LEVELS, DEFAULT_LOG_LEVEL
+    parser = argparse.ArgumentParser(description='Flash embedded devices')
+    parser.add_argument('firmware_file', type=str, help='Path to firmware file (.hex or .bin)')
+    parser.add_argument('--serial', '-s', type=int, nargs='+', default=None, help='Programmer serial number(s)')
+    parser.add_argument('--ip', type=str, nargs='+', default=None, help='JLink IP address(es)')
+    parser.add_argument('--mcu', type=str, default=None, help='MCU name (e.g., STM32F765ZG)')
+    parser.add_argument('--programmer', '-p', type=str, default=DEFAULT_PROGRAMMER, choices=SUPPORTED_PROGRAMMERS, help='Programmer type')
+    parser.add_argument('--log-level', '-l', type=str, default=DEFAULT_LOG_LEVEL, choices=LOG_LEVELS, help=f'Logging level (default: {DEFAULT_LOG_LEVEL})')
+    main(parser.parse_args())

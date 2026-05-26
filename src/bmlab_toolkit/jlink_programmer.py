@@ -11,18 +11,10 @@ import pylink
 from typing import Optional, List, Dict, Any
 from .programmer import Programmer, DBGMCU_IDCODE_ADDRESSES, DEVICE_ID_MAP, DEFAULT_MCU_MAP
 
-# Configure default logging level for JLinkProgrammer
-logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
-
-# Suppress pylink logger to avoid communication timeout errors during disconnect
-pylink_logger = logging.getLogger('pylink')
-pylink_logger.setLevel(logging.INFO)
-
-
 class JLinkProgrammer(Programmer):
     """JLink programmer implementation."""
 
-    def __init__(self, serial: Optional[int] = None, ip_addr: Optional[str] = None, log_level: int = logging.DEBUG):
+    def __init__(self, serial: Optional[int] = None, ip_addr: Optional[str] = None, log_level: int = logging.NOTSET):
         """
         Initialize JLink programmer.
         
@@ -37,8 +29,11 @@ class JLinkProgrammer(Programmer):
         self._rtt_started = False
         self._ip_addr = ip_addr
         
-        # Set logging level for this instance
-        self.logger.setLevel(log_level)
+        # Set logging level for this instance (only if explicitly specified)
+        if log_level != logging.NOTSET:
+            self.logger.setLevel(log_level)
+            # Set pylink library logging level to match
+            logging.getLogger('pylink').setLevel(log_level)
 
         # If IP address is provided, use it
         if ip_addr:
@@ -358,7 +353,6 @@ class JLinkProgrammer(Programmer):
                 
                 # Try to detect target MCU
                 try:
-                    print(f"serial found {emu.SerialNumber}")
                     # temp_jlink = pylink.JLink()
                     # jlink.open(serial_no=emu.SerialNumber)
                     # jlink.set_tif(pylink.enums.JLinkInterfaces.SWD)
@@ -371,7 +365,6 @@ class JLinkProgrammer(Programmer):
                     
                     # detected = temp_programmer.detect_target()
                     if detected:
-                        print(f"Detected target for JLink S/N {emu.SerialNumber}: {detected}")
                         device_info['target'] = detected
                     
                     # jlink.close()
@@ -386,7 +379,7 @@ class JLinkProgrammer(Programmer):
                 
             return devices
         except Exception as e:
-            print(f"Warning: Could not enumerate JLink devices: {e}")
+            logging.getLogger(__name__).warning(f"Could not enumerate JLink devices: {e}")
             return []
 
     def read_target_memory(self, address: int, num_bytes: int) -> Optional[list]:

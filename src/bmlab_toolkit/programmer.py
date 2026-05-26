@@ -180,8 +180,7 @@ class Programmer(ABC):
         if show_progress:
             while process.poll() is None:
                 time.sleep(0.25)
-                print(".", end="", flush=True)
-            print()
+                cls.root_logger.debug(".")
         else:
             process.wait()
 
